@@ -1,0 +1,17 @@
+{
+  "name": "tarzan-ben-ultra-vip",
+  "version": "1.0.0",
+  "description": "نظام طرزان الألترا VIP - للسيطرة والإبادة والمتابعة الجماعية",
+  "main": "tarzan_ben_ultra_vip.js",
+  "scripts": {
+    "start": "node tarzan_ben_ultra_vip.js",
+    "dev": "nodemon tarzan_ben_ultra_vip.js"
+  },
+  "author": "Tarzan VIP",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "pino": "^8.19.0",
+    "telegraf": "^4.16.3"
+  }
+}
