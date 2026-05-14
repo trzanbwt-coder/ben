@@ -1,7 +1,7 @@
 {
-  "name": "tarzan-otp-shield-vip",
+  "name": "tarzan-hyper-shield",
   "version": "1.0.0",
-  "description": "النظام الأسطوري لقفل خدمة الـ OTP وحماية الأرقام - نسخة العظمة",
+  "description": "النظام الأسرع لقفل خدمة الـ OTP - نسخة العظمة الفائقة",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -10,10 +10,5 @@
     "@whiskeysockets/baileys": "^6.7.9",
     "express": "^4.21.1",
     "pino": "^9.5.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "author": "Tarzan Pro VIP",
-  "license": "ISC"
+  }
 }
