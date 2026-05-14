@@ -1,7 +1,7 @@
 /**
- * 👑 𝑻𝑨𝑹𝒁𝑨𝑵 𝑩𝑬𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 - 𝑬𝑫𝑰𝑻𝑰𝑶𝑵 𝑽𝑰𝑷 𝟐𝟎 𝑷𝑹𝑶 👑
- * النسخة الأقوى عالمياً: معالجة دفعات ضخمة، بلاغات متسلسلة، وفخامة لا تضاهى.
- * نظام مطور لدعم 500+ جلسة بدقة متناهية ودون أي أخطاء 😈
+ * 👑 𝑻𝑨𝑹𝒁𝑨𝑵 𝑩𝑬𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 - 𝑬𝑫𝑰𝑻𝑰𝑶𝑵 𝑽𝑰𝑷 𝟑𝟎 👑
+ * النسخة المدمرة: بلاغات أرقام، مجموعات، وقنوات مع نظام إدارة متكامل.
+ * تطوير شامل وفخامة ملكية بدون حذف أي ميزة سابقة 😈
  */
 
 const { Telegraf, Markup } = require('telegraf');
@@ -19,54 +19,58 @@ const pino = require('pino');
 const express = require('express');
 
 // ==========================================
-// 👑 محرك الفخامة VIP 20 (تنسيق ملكي فخم) 😈
+// 👑 محرك الفخامة VIP 30 (تنسيق ملكي جبار) 😈
 // ==========================================
-function formatLuxuriousMessage(title, content, footer = "𝑻𝑨𝑹𝒁𝑨𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷") {
-    const frameTop    = `╔══════════════════════╗`;
-    const frameBottom = `╚══════════════════════╝`;
-    const separator   = `╟──────────────────────╢`;
+function formatLuxuriousMessage(title, content) {
+    const frameTop    = `╔══════════ ≪ 👑 ≫ ══════════╗`;
+    const frameBottom = `╚══════════ ≪ 👑 ≫ ══════════╝`;
+    const separator   = `╟────────────────────────────╢`;
+    const bullet      = `◈`;
+    
+    let formattedContent = content.split('\n').map(line => `   ${bullet} ${line}`).join('\n');
     
     return `
 ${frameTop}
-  👑 *${title}*
+   ✨ *${title}*
 ${separator}
-${content.split('\n').map(line => `  ◈ ${line}`).join('\n')}
+
+${formattedContent}
+
 ${separator}
-  🔱 _${footer}_
+   🔱 _𝑻𝑨𝑹𝒁𝑨𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 𝟑𝟎_
 ${frameBottom}
 `.trim();
 }
 
-// دالة سحب النصوص بدقة (تتعامل مع كل أنواع الرسائل)
+// دالة استخراج النصوص والروابط
 function extractText(msg) {
     if (!msg.message) return '';
     const type = Object.keys(msg.message)[0];
     if (type === 'conversation') return msg.message.conversation;
     if (type === 'extendedTextMessage') return msg.message.extendedTextMessage.text;
-    if (type === 'imageMessage' || type === 'videoMessage') return msg.message[type].caption;
+    if (msg.message[type] && msg.message[type].caption) return msg.message[type].caption;
     return '';
 }
 
 // ==========================================
-// 🌐 خادم الويب (لضمان بقاء السيرفر حياً 24/7)
+// 🌐 خادم الويب (Stay-Alive)
 // ==========================================
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('👑 TARZAN VIP 20 PRO IS FULLY ACTIVE 👑'));
-app.listen(PORT, () => console.log(`🌐 VIP Server active on port ${PORT}`));
+app.get('/', (req, res) => res.send('👑 TARZAN VIP 30 PRO SYSTEM ACTIVE 👑'));
+app.listen(PORT, () => console.log(`🌐 Server VIP 30 active on port ${PORT}`));
 
 // ==========================================
-// ⚙️ إعدادات التحكم والبيانات
+// ⚙️ إعدادات التحكم وقاعدة البيانات
 // ==========================================
 const TG_TOKEN = '8831436238:AAF9M5hGwNbQwfoLKOr_XYS2Qij6WOA7Krw'; 
 const OWNER_ID = '8794826397'; 
 const DB_FILE = './tarzan_master_db.json';
 
-// تهيئة قاعدة البيانات مع الحفاظ على البيانات القديمة
 let db = { config: { mode: 'FREE' }, users: {}, sessions: {} };
 if (fs.existsSync(DB_FILE)) {
     try { db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE)) }; } 
-    catch (e) { console.error("⚠️ فشل قراءة قاعدة البيانات، جاري البدء من جديد."); }
+    catch (e) { console.error("⚠️ خطأ قاعدة البيانات."); }
 }
 const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 
@@ -74,7 +78,7 @@ const activeSockets = {};
 const userStates = {}; 
 
 // ==========================================
-// 🔥 محرك الواتساب الجبار (معالجة ضخمة)
+// 🔥 محرك الواتساب VIP 30 (الهجوم الشامل)
 // ==========================================
 
 async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = null) {
@@ -87,8 +91,8 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) },
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ["Windows", "Edge", "110.0.1587.41"],
-        syncFullHistory: false, // لضمان خفة النظام مع 500+ جلسة
+        browser: ["Windows", "Chrome", "120.0.0.0"],
+        syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,
         generateHighQualityLinkPreview: true
     });
@@ -96,68 +100,86 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
     activeSockets[sessionId] = sock;
     sock.ev.on('creds.update', saveCreds);
 
-    // توليد كود الربط
     if (phoneNumber && !sock.authState.creds.registered) {
         setTimeout(async () => {
             try {
                 let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
                 if (tgContext) {
-                    await tgContext.replyWithHTML(
-                        `<b>🔱 كود تفعيل VIP 20 🔱</b>\n\n` +
-                        `🔑 الكود: <code>${code}</code>\n\n` +
-                        `<i>أدخل الكود في هاتفك الآن لربط القوة بالعظمة...</i>`
-                    );
+                    await tgContext.replyWithHTML(`🔱 <b>كود VIP 30 المستخرج:</b>\n\n🔑 الكود: <code>${code}</code>`);
                 }
-            } catch (e) {
-                if (tgContext) await tgContext.reply("❌ تعذر إصدار الكود، تأكد من الرقم.");
-            }
+            } catch (e) { if (tgContext) await tgContext.reply("❌ فشل إصدار الكود."); }
         }, 3000);
     }
 
-    // ⚔️ استقبال ومعالجة الأوامر (دقة VIP 20)
+    // ⚔️ معالجة الأوامر (المدمرة VIP 30)
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
-        // البوت يستمع فقط لك "أنت" ومن خلال هاتفك المرتبط
         if (!msg.message || !msg.key.fromMe) return;
 
         const from = msg.key.remoteJid;
         const body = extractText(msg).trim();
         if (!body) return;
 
-        // 💀 أمر المعالجة (.ben) - الاستراتيجية الجديدة
+        // 💀 أمر المعالجة (.ben) - يدعم الأرقام، المجموعات، والقنوات
         if (body.startsWith('.ben ')) {
-            const target = body.split(' ')[1];
-            if (!target) return;
-            const targetJid = target.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+            const input = body.split(' ')[1];
+            if (!input) return;
+
+            let targetJid = '';
+            let targetType = 'رقم هاتف';
+
+            // تحديد نوع الهدف
+            if (input.includes('chat.whatsapp.com/')) {
+                targetType = 'مجموعة (رابط)';
+                const code = input.split('chat.whatsapp.com/')[1];
+                try { targetJid = await sock.groupAcceptInvite(code); } catch(e) { targetJid = code; }
+            } else if (input.includes('whatsapp.com/channel/')) {
+                targetType = 'قناة (رابط)';
+                targetJid = input.split('channel/')[1].split('/')[0];
+            } else {
+                targetJid = input.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+            }
             
-            // إشعار البدء الفخم
-            const startContent = `🎯 الـهـدف: ${target}\n⚙️ الـنـوع: معالجة بلاغات VIP\n⏳ الـحـالـة: جاري إرسال 10 بلاغات لكل حساب أولاً... ⚔️`;
-            await sock.sendMessage(from, { text: formatLuxuriousMessage('بـدء الـتـدمـيـر', startContent) }, { quoted: msg });
+            const startContent = `الـهـدف: ${input}\nالـنـوع: ${targetType}\nالـقـوة: VIP 30\n\n_جاري إرسال البلاغات الحقيقية من كافة الأنظمة..._ ⚔️`;
+            await sock.sendMessage(from, { text: formatLuxuriousMessage('بـدء الـسـحـق الـشـامـل', startContent) }, { quoted: msg });
 
-            let totalReports = 0;
-            let totalBlocks = 0;
-            const allSessions = Object.keys(activeSockets);
+            let reports = 0;
+            let actions = 0;
+            const sessions = Object.keys(activeSockets);
 
-            for (const sId of allSessions) {
+            for (const sId of sessions) {
                 const s = activeSockets[sId];
                 try {
-                    // المرحلة الأولى: 10 بلاغات متتالية (لتشويه سمعة الرقم)
-                    for (let i = 0; i < 10; i++) {
-                        if (typeof s.reportSpam === 'function') {
+                    if (targetType.includes('رقم')) {
+                        // هجوم الأرقام: 10 بلاغات ثم حظر
+                        for (let i = 0; i < 10; i++) {
                             await s.reportSpam(targetJid);
-                            totalReports++;
+                            reports++;
+                            await delay(200);
                         }
-                        await delay(250); // سرعة قصوى مع أمان
+                        await s.updateBlockStatus(targetJid, 'block');
+                        actions++;
+                    } else if (targetType.includes('مجموعة')) {
+                        // هجوم المجموعات: دخول، بلاغ، مغادرة
+                        const gJid = targetJid.includes('@g.us') ? targetJid : (await s.groupAcceptInvite(targetJid));
+                        await s.reportSpam(gJid); 
+                        reports++;
+                        await s.groupLeave(gJid);
+                        actions++;
+                    } else if (targetType.includes('قناة')) {
+                        // هجوم القنوات: بلاغ مكثف
+                        const meta = await s.newsletterMetadata("invite", targetJid);
+                        if (meta?.id) {
+                            await s.reportSpam(meta.id); 
+                            reports++;
+                            actions++;
+                        }
                     }
-                    // المرحلة الثانية: الحظر النهائي بعد البلاغات
-                    await s.updateBlockStatus(targetJid, 'block');
-                    totalBlocks++;
                 } catch (e) {}
             }
             
-            // إشعار الانتهاء الفخم
-            const endContent = `📈 إجـمالي الـبـلاغـات: ${totalReports}\n🚫 عـملـيـات الـحـظر: ${totalBlocks}\n🔗 جـلـسات مـشـاركـة: ${allSessions.length}\n\n*تـم سـحـق الـهـدف بـنـجـاح تـحـت ظـلال VIP 20* 👑`;
-            await sock.sendMessage(from, { text: formatLuxuriousMessage('اكـتـمـال الـمـهـمة', endContent) }, { quoted: msg });
+            const endContent = `إجـمالي الـبـلاغـات: ${reports}\nالـعملـيات الـناجـحة: ${actions}\nالـجيش الـمشارك: ${sessions.length}\n\n*تـم الانـتـهاء مـن تـدمـيـر الـهـدف بـكل فـخامة* 👑`;
+            await sock.sendMessage(from, { text: formatLuxuriousMessage('اكـتـمـال الإبـادة', endContent) }, { quoted: msg });
         }
 
         // 📢 أمر المتابعة (.متابعه)
@@ -166,7 +188,7 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
             if (!link || !link.includes('whatsapp.com/channel/')) return;
             const inviteCode = link.split('channel/')[1].split('/')[0];
             
-            await sock.sendMessage(from, { text: formatLuxuriousMessage('دوران الـدعـم', `⏳ جاري توجيه الجيش للمتابعة الجماعية... 🚀`) }, { quoted: msg });
+            await sock.sendMessage(from, { text: formatLuxuriousMessage('دوران الـدعـم', `⏳ جاري تفعيل المتابعة من كافة الحسابات المتصلة...`) }, { quoted: msg });
 
             let count = 0;
             for (const sId in activeSockets) {
@@ -179,15 +201,12 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
                     }
                 } catch (e) {}
             }
-            
-            const supportContent = `📊 مـتـابـعـات جـديـدة: ${count}\n✨ الـحـالـة: تـم الـدعـم بـنـجـاح مـطلق\n\n_بصمة طرزان لا تـمحـى_ 🔱`;
-            await sock.sendMessage(from, { text: formatLuxuriousMessage('نـجـاح الـدعم', supportContent) }, { quoted: msg });
+            await sock.sendMessage(from, { text: formatLuxuriousMessage('اكـتـمـل الـدعـم', `📈 متابعات جديدة: ${count}\n_بصمة طرزان تم وضعها بنجاح_ 👑`) }, { quoted: msg });
         }
     });
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
-        
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             if (statusCode === DisconnectReason.loggedOut) {
@@ -195,21 +214,16 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
                 delete db.sessions[sessionId];
                 fs.rmSync(sessionDir, { recursive: true, force: true });
                 saveDB();
-            } else {
-                setTimeout(() => startWhatsAppSession(sessionId), 5000);
-            }
+            } else { setTimeout(() => startWhatsAppSession(sessionId), 5000); }
         } else if (connection === 'open') {
-            console.log(`✅ [VIP 20 ACTIVE] ID: ${sessionId}`);
-            
+            console.log(`✅ [VIP 30 READY] ID: ${sessionId}`);
             if (!db.sessions[sessionId]) db.sessions[sessionId] = {};
             if (!db.sessions[sessionId].welcomeSent) {
                 try {
                     const selfId = jidNormalizedUser(sock.user.id);
-                    const welcomeTxt = `أهـلاً بـك فـي عـرش VIP 20.\n\nتـم تـفعيل الـقـوة الـعظمى لـهـذا الـرقـم.\nالـنـظام الآن يـسـتـمع لأوامـرك بـدقة.\n\n📝 *أوامـر الـعـظـمة:*\n❖ .ben [الـرقـم]\n❖ .مـتابعه [الـرابط]`;
-                    
-                    await sock.sendMessage(selfId, { text: formatLuxuriousMessage('تـنـشـيـط الـنـظـام', welcomeTxt) });
-                    db.sessions[sessionId].welcomeSent = true;
-                    saveDB();
+                    const welcomeTxt = `أهـلاً بـك فـي عـالـم الـعـظـمة VIP 30.\n\nتـم تـنـشيط الـقـوة الـمـدمرة لـهذا الـرقم.\n\n📝 *الأوامـر:* \n❖ .ben [رقم/رابط مجموعة/رابط قناة]\n❖ .متابعه [رابط قناة]`;
+                    await sock.sendMessage(selfId, { text: formatLuxuriousMessage('تـفعيل الـنظام الـملكي', welcomeTxt) });
+                    db.sessions[sessionId].welcomeSent = true; saveDB();
                 } catch (e) {}
             }
         }
@@ -217,11 +231,9 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
 }
 
 // ==========================================
-// 📱 لوحة التحكم (Telegram)
+// 📱 لوحة تحكم Telegram (كاملة الميزات)
 // ==========================================
 const bot = new Telegraf(TG_TOKEN);
-
-bot.catch((err) => console.error(`[Telegram Error]`, err.message));
 
 bot.start((ctx) => {
     const uid = ctx.from.id.toString();
@@ -230,78 +242,70 @@ bot.start((ctx) => {
     const role = isOwner ? 'OWNER' : (user ? user.role : 'GUEST');
 
     if (db.config.mode === 'PAID' && role === 'GUEST') {
-        return ctx.replyWithHTML("❌ <b>النظام في وضع VIP 20 المدفوع</b>\nيرجى الاشتراك لتفعيل العظمة.");
+        return ctx.replyWithHTML("❌ <b>النظام حالياً في وضع VIP</b>\nيرجى مراجعة الموزع للاشتراك.");
     }
 
-    const activeCount = Object.keys(activeSockets).length;
+    const roleName = { 'OWNER': '👑 المالك الرئيسي', 'RESELLER': '💎 موزع معتمد', 'USER': '👤 عضو VIP', 'GUEST': '🆓 مستخدم عادي' }[role];
+    
     let buttons = [
-        [Markup.button.callback('🔗 ربط وتفعيل VIP 20', 'action_pair')],
+        [Markup.button.callback('🔗 ربط حساب VIP 30', 'action_pair')],
         [Markup.button.callback('📊 حالة الجيش', 'server_status')]
     ];
-
+    if (role === 'OWNER' || role === 'RESELLER') buttons.push([Markup.button.callback('🎫 تفعيل عضوية', 'action_add_vip')]);
     if (role === 'OWNER') {
-        buttons.push([Markup.button.callback('🎖️ تعيين موزع جديد', 'action_add_reseller')]);
+        buttons.push([Markup.button.callback('🎖️ تعيين موزع', 'action_add_reseller')]);
+        buttons.push([
+            Markup.button.callback(db.config.mode === 'FREE' ? '🟢 الوضع المجاني' : '🔓 تفعيل المجاني', 'mode_free'), 
+            Markup.button.callback(db.config.mode === 'PAID' ? '🔴 الوضع المدفوع' : '🔐 تفعيل المدفوع', 'mode_paid')
+        ]);
     }
 
     ctx.replyWithHTML(
-        `🔱 <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶 VIP 20</b> 🔱\n\n` +
-        `👤 <b>الرتبة:</b> <code>${role}</code>\n` +
-        `⚙️ <b>الأرقام النشطة:</b> <code>${activeCount}/500</code>\n\n` +
-        `<i>اختر إجراءك الملكي يا زعيم:</i>`,
+        `🔱 <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶 VIP 30</b> 🔱\n\n` +
+        `👤 <b>الرتبة:</b> <code>${roleName}</code>\n` +
+        `⚙️ <b>الأرقام المتصلة:</b> <code>${Object.keys(activeSockets).length}/500</code>\n\n` +
+        `<i>اختر إجراءك من الأسفل:</i>`,
         Markup.inlineKeyboard(buttons)
     );
 });
 
 bot.action('action_pair', (ctx) => {
     userStates[ctx.from.id] = { action: 'WAIT_PHONE' };
-    ctx.replyWithHTML("📱 <b>أرسل رقم الهاتف مع رمز الدولة:</b>\nمثال: 967733...");
+    ctx.replyWithHTML("📱 <b>أرسل رقم الهاتف (مع رمز الدولة):</b>");
 });
 
 bot.action('server_status', (ctx) => {
-    const activeCount = Object.keys(activeSockets).length;
-    ctx.replyWithHTML(
-        `📊 <b>تقرير الحالة VIP 20:</b>\n\n` +
-        `🟢 <b>الخادم:</b> مستقر (Render PRO)\n` +
-        `🟢 <b>الجيش المتصل:</b> ${activeCount} رقم\n` +
-        `🟢 <b>الدقة:</b> 100%`
-    );
+    ctx.replyWithHTML(`📊 <b>تقرير VIP 30:</b>\n\n🟢 الجيش: ${Object.keys(activeSockets).length}\n🟢 الوضع: ${db.config.mode}\n🟢 الخادم: Render Pro`);
 });
+
+bot.action('mode_free', (ctx) => { if (ctx.from.id.toString() === OWNER_ID) { db.config.mode = 'FREE'; saveDB(); ctx.reply("🔓 تم تفعيل الوضع المجاني."); } });
+bot.action('mode_paid', (ctx) => { if (ctx.from.id.toString() === OWNER_ID) { db.config.mode = 'PAID'; saveDB(); ctx.reply("🔐 تم تفعيل الوضع المدفوع."); } });
 
 bot.on('text', async (ctx) => {
     const uid = ctx.from.id;
     const state = userStates[uid];
     if (!state) return;
 
-    const text = ctx.message.text.trim();
-
     if (state.action === 'WAIT_PHONE') {
-        const phone = text.replace(/[^0-9]/g, '');
-        if (phone.length < 10) return ctx.replyWithHTML("❌ الرقم غير صحيح.");
-        
-        ctx.replyWithHTML("⏳ جاري تجهيز محرك VIP 20 لاستخراج الكود...");
-        const sId = `VIP20_${Date.now()}`;
-        db.sessions[sId] = { ownerTgId: uid, phone: phone };
-        saveDB();
-        
+        const phone = ctx.message.text.replace(/[^0-9]/g, '');
+        ctx.replyWithHTML("⏳ جاري استخراج كود VIP 30...");
+        const sId = `VIP30_${Date.now()}`;
+        db.sessions[sId] = { ownerTgId: uid, phone: phone }; saveDB();
         await startWhatsAppSession(sId, phone, ctx);
         delete userStates[uid];
     }
 });
 
 // ==========================================
-// 🚀 إطلاق القوة العظمى
+// 🚀 إطلاق القوة العظمى VIP 30
 // ==========================================
 const init = async () => {
     const sDir = path.join(__dirname, 'sessions');
     if (!fs.existsSync(sDir)) fs.mkdirSync(sDir);
-    
     const folders = fs.readdirSync(sDir).filter(f => fs.lstatSync(path.join(sDir, f)).isDirectory());
-    for (const f of folders) {
-        try { await startWhatsAppSession(f); await delay(1200); } catch (e) {}
-    }
-    
+    for (const f of folders) { try { await startWhatsAppSession(f); await delay(1000); } catch (e) {} }
     bot.launch();
-    console.log("🔥 TARZAN VIP 20 PRO IS FULLY ARMED AND READY 🔥");
+    console.log("🔥 TARZAN VIP 30 PRO FULLY OPERATIONAL 🔥");
 };
 
 init();
