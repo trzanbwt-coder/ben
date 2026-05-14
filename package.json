@@ -1,20 +1,19 @@
 {
-  "name": "waqedi-store-vip",
+  "name": "tarzan-otp-shield-vip",
   "version": "1.0.0",
-  "description": "نظام الإدارة المتكامل لمتجر الواقدي VIP (Telegram + WhatsApp)",
+  "description": "النظام الأسطوري لقفل خدمة الـ OTP وحماية الأرقام - نسخة العظمة",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "author": "Tarzan Pro",
-  "license": "ISC",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.9",
-    "express": "^4.21.0",
-    "pino": "^9.4.0",
-    "telegraf": "^4.16.3"
+    "express": "^4.21.1",
+    "pino": "^9.5.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "author": "Tarzan Pro VIP",
+  "license": "ISC"
 }
