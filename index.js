@@ -1,276 +1,302 @@
 /**
- * 👑 𝑻𝑨𝑹𝒁𝑨𝑵 𝑩𝑬𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 - 𝑷𝑹𝑶 𝑬𝑫𝑰𝑻𝑰𝑶𝑵 👑
- * النسخة الحقيقية المجهزة للتعامل مع 1500 جلسة وتوجيه ضربات فعلية 😈
+ * 👑 متجر الواقدي للخدمات الإلكترونية - نسخة VIP 👑
+ * نظام الإدارة المتكامل (Telegram + WhatsApp)
  */
 
 const { Telegraf, Markup } = require('telegraf');
 const { 
     default: makeWASocket, 
     useMultiFileAuthState, 
-    DisconnectReason, 
+    DisconnectReason,
     makeCacheableSignalKeyStore,
-    jidNormalizedUser,
     delay
 } = require('@whiskeysockets/baileys');
+const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
-const pino = require('pino');
 const express = require('express');
 
 // ==========================================
-// 🌐 خادم الويب (لضمان استمرار السيرفر 24/7)
-// ==========================================
-const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('👑 TARZAN PRO SYSTEM IS ACTIVE 👑'));
-app.listen(PORT, () => console.log(`🌐 Server active on port ${PORT}`));
-
-// ==========================================
-// ⚙️ إعدادات التحكم
+// ⚙️ إعدادات النظام (البيانات الخاصة بك)
 // ==========================================
 const TG_TOKEN = '8831436238:AAF9M5hGwNbQwfoLKOr_XYS2Qij6WOA7Krw'; 
-const OWNER_ID = '8794826397'; 
-const DB_FILE = './tarzan.json'; // تم توحيد قاعدة البيانات المحلية حصرياً لتكون خفيفة وسريعة
+const ADMIN_ID = '8794826397'; 
 
-// تهيئة قاعدة البيانات
-let db = { config: { mode: 'FREE' }, users: {}, sessions: {} };
+const PORT = process.env.PORT || 3000;
+const SESSION_DIR = path.join(__dirname, 'waqedi_session');
+const DB_FILE = path.join(__dirname, 'waqedi_db.json');
+
+// ==========================================
+// 🗄️ قاعدة البيانات المصغرة
+// ==========================================
+let db = {
+    settings: { botActive: true },
+    customers: {}, 
+    stats: { messagesReceived: 0, ordersPlaced: 0 }
+};
+
 if (fs.existsSync(DB_FILE)) {
-    try { db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE)) }; } 
-    catch (e) { console.error("⚠️ خطأ في قاعدة البيانات، تم البدء من جديد."); }
+    try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE))); } 
+    catch (e) { console.error("⚠️ خطأ في قراءة قاعدة البيانات."); }
 }
 const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 
-const activeSockets = {}; 
-const userStates = {}; 
+// ==========================================
+// 🌐 خادم الويب (مهم لاستضافة Render)
+// ==========================================
+const app = express();
+app.get('/', (req, res) => res.send('👑 متجر الواقدي للخدمات الإلكترونية VIP يعمل بنجاح 👑'));
+app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 
 // ==========================================
-// 🔥 محرك الواتساب (النظام الأساسي المحسن لـ 1500 جلسة)
+// 📱 تهيئة بوت التلجرام (لوحة التحكم)
 // ==========================================
+const tgBot = new Telegraf(TG_TOKEN);
+let adminState = { action: null }; 
 
-async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = null) {
-    const sessionDir = path.join(__dirname, 'sessions', sessionId);
-    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+// ==========================================
+// 🔥 محرك الواتساب (متجر الواقدي)
+// ==========================================
+let waSock = null;
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-    
-    // ⚠️ تحسينات الذاكرة الخطيرة: إيقاف المزامنة تماماً لمنع انهيار الرام مع 1500 حساب
-    const sock = makeWASocket({
-        auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) },
-        printQRInTerminal: false,
+async function startWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+
+    waSock = makeWASocket({
+        auth: { 
+            creds: state.creds, 
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) 
+        },
         logger: pino({ level: 'silent' }),
-        browser: ["Windows", "Edge", "110.0.1587.41"],
-        syncFullHistory: false, // إجباري لمنع سحب الرسائل
-        markOnlineOnConnect: false, // لتقليل استهلاك الباندويث والموارد
-        generateHighQualityLinkPreview: false,
-        getMessage: async () => { return { conversation: '' } } // تفريغ الذاكرة فوراً
+        browser: ["Al-Waqedi Store", "Safari", "1.0.0"],
+        printQRInTerminal: false,
+        syncFullHistory: false
     });
 
-    activeSockets[sessionId] = sock;
-    sock.ev.on('creds.update', saveCreds);
+    waSock.ev.on('creds.update', saveCreds);
 
-    if (phoneNumber && !sock.authState.creds.registered) {
-        setTimeout(async () => {
-            try {
-                let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                if (tgContext) {
-                    await tgContext.replyWithHTML(
-                        `<b>🔱 تم استخراج كود الربط بنجاح 🔱</b>\n\n` +
-                        `🔑 الكود: <code>${code}</code>\n\n` +
-                        `أدخل الكود في واتساب لتفعيل النظام.`
-                    );
-                }
-            } catch (e) {
-                if (tgContext) await tgContext.reply("❌ تعذر إصدار الكود، يرجى التأكد من الرقم والمحاولة لاحقاً.");
-            }
-        }, 3000);
-    }
-
-    sock.ev.on('messages.upsert', async ({ messages }) => {
-        const msg = messages[0];
-        if (!msg.message || msg.key.fromMe) return;
-
-        const from = msg.key.remoteJid;
-        const body = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
-
-        // 💀 أمر المعالجة (.ben) - الهجوم الحقيقي الموازي
-        if (body.startsWith('.ben ')) {
-            const target = body.split(' ')[1];
-            if (!target) return;
-            const targetJid = target.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-            
-            await sock.sendMessage(from, { text: `⚔️ <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶𝑪𝑬𝑺𝑺𝑰𝑵𝑮</b> ⚔️\n\n🎯 <b>المستخدم:</b> ${target}\n⚙️ <b>الحالة:</b> يتم الآن توجيه جيش التفاعل لإرسال البلاغات الحقيقية دفعة واحدة...` }, { quoted: msg });
-
-            let totalHits = 0;
-            const allSockets = Object.values(activeSockets);
-            const networkSize = allSockets.length;
-
-            // تقسيم الهجوم إلى دفعات (Batches) لضمان عدم انهيار السيرفر أو حظر الأيبيهات
-            const chunkSize = 25; 
-            
-            for (let i = 0; i < allSockets.length; i += chunkSize) {
-                const chunk = allSockets.slice(i, i + chunkSize);
-                
-                // إرسال البلاغات بشكل متوازي (Parallel) للدفعة الواحدة
-                await Promise.all(chunk.map(async (sck) => {
-                    try {
-                        // إرسال طلب البلاغ والحظر الفعلي لخوادم واتساب
-                        await sck.updateBlockStatus(targetJid, 'block');
-                        await sck.reportSpam(targetJid);
-                        totalHits++;
-                    } catch (e) {
-                        // نتجاهل الأخطاء الفردية حتى لا يتوقف الهجوم
-                    }
-                }));
-                // تأخير ذكي بين كل 25 حساب لتجنب حظر الـ IP الخاص بسيرفرك
-                await delay(1200); 
-            }
-
-            await sock.sendMessage(from, { text: `✅ <b>اكتملت المهمة بنجاح</b>\n\n📈 إجمالي الإبلاغات الفعلية: ${totalHits}\n🔗 الأنظمة المشاركة: ${networkSize}\n\n<i>تم ضرب الهدف بنجاح.</i>` }, { quoted: msg });
-        }
-
-        // 📢 أمر المتابعة (.متابعه) - معالجة سريعة
-        if (body.startsWith('.متابعه ') || body.startsWith('.متابعة ')) {
-            const link = body.split(' ')[1];
-            if (!link || !link.includes('whatsapp.com/channel/')) {
-                return sock.sendMessage(from, { text: '⚠️ عذراً، الرابط غير صحيح.' });
-            }
-            const inviteCode = link.split('channel/')[1].split('/')[0];
-            
-            await sock.sendMessage(from, { text: `🔄 <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑺𝑼𝑷𝑷𝑶𝑹𝑻</b> 🔄\n\n⏳ جاري تفعيل المتابعة...` }, { quoted: msg });
-
-            let count = 0;
-            const allSockets = Object.values(activeSockets);
-            const chunkSize = 20;
-
-            for (let i = 0; i < allSockets.length; i += chunkSize) {
-                const chunk = allSockets.slice(i, i + chunkSize);
-                await Promise.all(chunk.map(async (sck) => {
-                    try {
-                        const meta = await sck.newsletterMetadata("invite", inviteCode);
-                        if (meta?.id) {
-                            await sck.newsletterFollow(meta.id);
-                            count++;
-                        }
-                    } catch (e) {}
-                }));
-                await delay(1000);
-            }
-            await sock.sendMessage(from, { text: `✅ <b>اكتمل الدعم الفني</b>\n\n📈 عدد المتابعات الجديدة: ${count}.` }, { quoted: msg });
-        }
-    });
-
-    sock.ev.on('connection.update', async (update) => {
+    waSock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
         
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             if (statusCode === DisconnectReason.loggedOut) {
-                delete activeSockets[sessionId];
-                delete db.sessions[sessionId];
-                fs.rmSync(sessionDir, { recursive: true, force: true });
-                saveDB();
+                fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+                waSock = null;
+                tgBot.telegram.sendMessage(ADMIN_ID, "⚠️ تم تسجيل الخروج من الواتساب! يرجى إعادة الربط عبر اللوحة.");
             } else {
-                setTimeout(() => startWhatsAppSession(sessionId), 5000);
+                setTimeout(startWhatsApp, 3000);
             }
         } else if (connection === 'open') {
-            if (!db.sessions[sessionId]) db.sessions[sessionId] = {};
-            if (!db.sessions[sessionId].welcomeSent) {
-                try {
-                    const selfId = jidNormalizedUser(sock.user.id);
-                    await sock.sendMessage(selfId, { text: `👑 <b>أهلاً بك في نظام 𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶</b> 👑\nتم الربط بنجاح.` });
-                    db.sessions[sessionId].welcomeSent = true;
-                    saveDB();
-                } catch (e) {}
-            }
+            tgBot.telegram.sendMessage(ADMIN_ID, "✅ متجر الواقدي (واتساب) متصل وجاهز للعمل!");
         }
+    });
+
+    waSock.ev.on('messages.upsert', async ({ messages }) => {
+        const msg = messages[0];
+        if (!msg.message || msg.key.fromMe) return;
+        if (!db.settings.botActive) return;
+
+        const sender = msg.key.remoteJid;
+        if (sender.includes('@g.us')) return;
+
+        db.stats.messagesReceived++;
+        const pushName = msg.pushName || 'عميلنا العزيز';
+        
+        if (!db.customers[sender]) {
+            db.customers[sender] = { name: pushName, firstVisit: new Date().toISOString(), state: 'IDLE' };
+            saveDB();
+        }
+
+        const text = (msg.message.conversation || 
+                      msg.message.extendedTextMessage?.text || 
+                      msg.message.listResponseMessage?.title || 
+                      msg.message.buttonsResponseMessage?.selectedDisplayText || '').trim();
+
+        await handleCustomerMessage(sender, text, pushName, msg);
     });
 }
 
 // ==========================================
-// 📱 لوحة التحكم (Telegram)
+// 🤖 منطق التعامل مع رسائل العملاء
 // ==========================================
-const bot = new Telegraf(TG_TOKEN);
+async function handleCustomerMessage(sender, text, pushName, originalMsg) {
+    const userState = db.customers[sender].state;
 
-bot.catch((err) => console.error(`[Telegram Error]`, err.message));
+    if (['مرحبا', 'السلام عليكم', 'هلا', 'خدمات', 'القائمة'].includes(text.toLowerCase())) {
+        db.customers[sender].state = 'IDLE';
+        const menuSections = [
+            {
+                title: "💎 خدمات السوشيال ميديا",
+                rows: [
+                    {title: "🚀 زيادة متابعين تيك توك", rowId: "srv_tiktok", description: "متابعين حقيقيين وسريعين"},
+                    {title: "📸 زيادة متابعين انستقرام", rowId: "srv_insta", description: "عرب وأجانب بضمان"}
+                ]
+            },
+            {
+                title: "🎮 شحن ألعاب",
+                rows: [
+                    {title: "🔥 شحن شدات ببجي", rowId: "srv_pubg", description: "أسعار منافسة وتسليم فوري"}
+                ]
+            },
+            {
+                title: "🛠️ الدعم والمساعدة",
+                rows: [
+                    {title: "👨‍💻 التحدث مع الإدارة", rowId: "srv_admin", description: "للاستفسارات والمشاكل"},
+                    {title: "💳 طرق الدفع", rowId: "srv_payment", description: "الحسابات البنكية المتاحة"}
+                ]
+            }
+        ];
 
-bot.start((ctx) => {
-    const uid = ctx.from.id.toString();
-    const isOwner = uid === OWNER_ID;
-    const user = db.users[uid];
-    const role = isOwner ? 'OWNER' : (user ? user.role : 'GUEST');
+        const listMsg = {
+            text: `أهلاً بك يا *${pushName}* في 👑 *متجر الواقدي للخدمات الإلكترونية VIP* 👑\n\nنحن هنا لتلبية احتياجاتك الرقمية.\nيرجى اختيار الخدمة المطلوبة:`,
+            footer: "مؤسسة الواقدي © 2026",
+            title: "قائمة الخدمات 📋",
+            buttonText: "عرض الخدمات 👆",
+            sections: menuSections
+        };
 
-    if (db.config.mode === 'PAID' && role === 'GUEST') {
-        return ctx.replyWithHTML("❌ <b>النظام حالياً في وضع VIP</b>");
+        await waSock.sendMessage(sender, listMsg);
+        return;
     }
 
-    const roleName = { 'OWNER': '👑 المالك الرئيسي', 'RESELLER': '💎 موزع معتمد', 'USER': '👤 عضو VIP', 'GUEST': '🆓 مستخدم عادي' }[role];
-    const activeSessionsCount = Object.keys(activeSockets).length;
-
-    let buttons = [
-        [Markup.button.callback('🔗 ربط وتفعيل حساب', 'action_pair')],
-        [Markup.button.callback('📊 حالة النظام', 'server_status')]
-    ];
-
-    if (role === 'OWNER' || role === 'RESELLER') {
-        buttons.push([Markup.button.callback('🎫 تفعيل عضوية VIP', 'action_add_vip')]);
+    if (text === '🚀 زيادة متابعين تيك توك') {
+        await waSock.sendMessage(sender, { text: "📌 *تيك توك:*\n- 1000 متابع = 5$\nأرسل رابط حسابك:" });
+        db.customers[sender].state = 'WAITING_TIKTOK_LINK'; saveDB(); return;
     }
     
-    if (role === 'OWNER') {
-        buttons.push([Markup.button.callback('🎖️ تعيين موزع جديد', 'action_add_reseller')]);
+    if (text === '🔥 شحن شدات ببجي') {
+        await waSock.sendMessage(sender, { text: "📌 *ببجي:*\n- 325 شدة = 4$\nأرسل الـ ID الخاص بك:" });
+        db.customers[sender].state = 'WAITING_PUBG_ID'; saveDB(); return;
     }
 
-    ctx.replyWithHTML(
-        `🔱 <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶 𝑺𝒀𝑺𝑻𝑬𝑴</b> 🔱\n\n` +
-        `👤 <b>الرتبة:</b> <code>${roleName}</code>\n` +
-        `⚙️ <b>الأنظمة النشطة:</b> <code>${activeSessionsCount}</code>`,
-        Markup.inlineKeyboard(buttons)
-    );
+    if (text === '💳 طرق الدفع') {
+        await waSock.sendMessage(sender, { text: "💳 *طرق الدفع:*\n1. تحويل بنكي\n2. STC Pay\n3. باينانس USDT" }); return;
+    }
+
+    if (text === '👨‍💻 التحدث مع الإدارة') {
+        await waSock.sendMessage(sender, { text: "تم تحويلك للإدارة. ⏳\nيرجى كتابة رسالتك وسنرد قريباً." });
+        db.customers[sender].state = 'CHATTING_WITH_ADMIN'; saveDB();
+        tgBot.telegram.sendMessage(ADMIN_ID, `🔔 *طلب محادثة جديد*\nالعميل: ${pushName}\nالرقم: ${sender.split('@')[0]}`); return;
+    }
+    
+    if (userState === 'WAITING_TIKTOK_LINK') {
+        await waSock.sendMessage(sender, { text: "✅ تم استلام الرابط.\nجاري التجهيز... (للعودة أرسل 'قائمة')" });
+        db.customers[sender].state = 'IDLE'; db.stats.ordersPlaced++; saveDB();
+        tgBot.telegram.sendMessage(ADMIN_ID, `🛒 *طلب تيك توك*\nالعميل: ${pushName}\nالرابط: ${text}`); return;
+    }
+
+    if (userState === 'WAITING_PUBG_ID') {
+        await waSock.sendMessage(sender, { text: `✅ تم استلام الـ ID: *${text}*\n(للعودة أرسل 'قائمة')` });
+        db.customers[sender].state = 'IDLE'; db.stats.ordersPlaced++; saveDB();
+        tgBot.telegram.sendMessage(ADMIN_ID, `🎮 *طلب ببجي*\nالعميل: ${pushName}\nالـ ID: ${text}`); return;
+    }
+
+    if (userState === 'CHATTING_WITH_ADMIN') {
+        tgBot.telegram.sendMessage(ADMIN_ID, `💬 *رسالة من ${pushName}:*\n${text}\n\n---\nللرد:\n\`/رد ${sender.split('@')[0]} النص\``, {parse_mode: 'Markdown'}); return;
+    }
+
+    if (userState === 'IDLE') {
+        await waSock.sendMessage(sender, {
+            name: 'اختر إجراء سريع 👇',
+            values: ['القائمة', '👨‍💻 التحدث مع الإدارة'],
+            selectableCount: 1
+        });
+    }
+}
+
+// ==========================================
+// 🛠️ لوحة تحكم التلجرام
+// ==========================================
+tgBot.use((ctx, next) => {
+    if (ctx.from && ctx.from.id.toString() !== ADMIN_ID) return ctx.reply("⛔ اللوحة للإدارة فقط.");
+    return next();
 });
 
-bot.action('action_pair', (ctx) => {
-    userStates[ctx.from.id] = { action: 'WAIT_PHONE' };
-    ctx.replyWithHTML("📱 <b>يرجى إرسال رقم الهاتف:</b>");
+tgBot.start((ctx) => { adminState.action = null; sendAdminMenu(ctx); });
+
+function sendAdminMenu(ctx) {
+    const statusText = db.settings.botActive ? '🟢 يعمل' : '🔴 متوقف';
+    const msg = `👑 *لوحة متجر الواقدي* 👑\n\n📊 *الإحصائيات:*\n- العملاء: ${Object.keys(db.customers).length}\n- الطلبات: ${db.stats.ordersPlaced}\n\n⚙️ *الحالة:* ${statusText}`;
+
+    const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔗 ربط الرقم', 'admin_pair')],
+        [Markup.button.callback(db.settings.botActive ? '⏸️ إيقاف' : '▶️ تشغيل', 'admin_toggle_bot')],
+        [Markup.button.callback('📢 إذاعة رسالة', 'admin_broadcast')],
+        [Markup.button.callback('🔄 تحديث', 'admin_refresh')]
+    ]);
+
+    if (ctx.updateType === 'callback_query') ctx.editMessageText(msg, { parse_mode: 'Markdown', ...keyboard }).catch(()=>{});
+    else ctx.reply(msg, { parse_mode: 'Markdown', ...keyboard });
+}
+
+tgBot.action('admin_refresh', (ctx) => { ctx.answerCbQuery(); sendAdminMenu(ctx); });
+
+tgBot.action('admin_toggle_bot', (ctx) => {
+    db.settings.botActive = !db.settings.botActive; saveDB();
+    ctx.answerCbQuery('تم التغيير'); sendAdminMenu(ctx);
 });
 
-bot.action('server_status', (ctx) => {
-    ctx.replyWithHTML(`📊 <b>الجلسات النشطة:</b> ${Object.keys(activeSockets).length}`);
+tgBot.action('admin_pair', (ctx) => {
+    ctx.answerCbQuery();
+    if (waSock && waSock.authState.creds.registered) return ctx.reply("⚠️ الرقم مرتبط بالفعل.");
+    adminState.action = 'WAITING_PHONE';
+    ctx.reply("📱 *أرسل رقم الواتساب للربط:*\n(بدون + مثال: 9665...)", {parse_mode: 'Markdown'});
 });
 
-bot.on('text', async (ctx) => {
-    const uid = ctx.from.id;
-    const state = userStates[uid];
-    if (!state) return;
+tgBot.action('admin_broadcast', (ctx) => {
+    ctx.answerCbQuery(); adminState.action = 'WAITING_BROADCAST';
+    ctx.reply("📢 *إرسال للكل:*\nاكتب الرسالة (أو أرسل 'الغاء')", {parse_mode: 'Markdown'});
+});
+
+tgBot.on('text', async (ctx) => {
     const text = ctx.message.text.trim();
 
-    if (state.action === 'WAIT_PHONE') {
+    if (text.startsWith('/رد ')) {
+        if (!waSock) return ctx.reply("❌ الواتساب غير متصل.");
+        const parts = text.split(' ');
+        if (parts.length < 3) return ctx.reply("⚠️ استخدم: `/رد الرقم النص`", {parse_mode:'Markdown'});
+        try {
+            await waSock.sendMessage(`${parts[1]}@s.whatsapp.net`, { text: `👨‍💻 *رد الإدارة:*\n${parts.slice(2).join(' ')}` });
+            ctx.reply("✅ تم الإرسال.");
+        } catch (e) { ctx.reply("❌ فشل الإرسال."); }
+        return;
+    }
+
+    if (adminState.action === 'WAITING_PHONE') {
         const phone = text.replace(/[^0-9]/g, '');
-        ctx.replyWithHTML("⏳ جاري التواصل مع الخادم...");
-        const sId = `SESSION_${Date.now()}`;
-        db.sessions[sId] = { ownerTgId: uid, phone: phone };
-        saveDB();
-        await startWhatsAppSession(sId, phone, ctx);
-        delete userStates[uid];
+        ctx.reply("⏳ جاري الطلب...");
+        try {
+            if (waSock && !waSock.authState.creds.registered) {
+                 setTimeout(async () => {
+                    let code = await waSock.requestPairingCode(phone);
+                    ctx.reply(`👑 *الكود:* \n\`${code}\`\nأدخله في الأجهزة المرتبطة في الواتساب.`, {parse_mode: 'Markdown'});
+                 }, 3000);
+            }
+        } catch (e) { ctx.reply(`❌ خطأ: ${e.message}`); }
+        adminState.action = null;
     } 
+    else if (adminState.action === 'WAITING_BROADCAST') {
+        if (text === 'الغاء') { adminState.action = null; return ctx.reply("✅ تم الإلغاء."); }
+        if (!waSock) return ctx.reply("❌ الواتساب غير متصل.");
+        
+        const customers = Object.keys(db.customers);
+        ctx.reply(`⏳ جاري الإرسال لـ ${customers.length} عميل...`);
+        let successCount = 0;
+        for (const jid of customers) {
+            try { await waSock.sendMessage(jid, { text: `📢 *إعلان:*\n${text}` }); successCount++; await delay(1000); } catch (e) {}
+        }
+        ctx.reply(`✅ *تم الإرسال* لـ ${successCount} عميل.`, {parse_mode: 'Markdown'});
+        adminState.action = null;
+    }
 });
 
-// ==========================================
-// 🚀 إطلاق النظام
-// ==========================================
-const init = async () => {
-    const sDir = path.join(__dirname, 'sessions');
-    if (!fs.existsSync(sDir)) fs.mkdirSync(sDir);
-    
-    const folders = fs.readdirSync(sDir).filter(f => fs.lstatSync(path.join(sDir, f)).isDirectory());
-    // التشغيل المتسلسل السريع للجلسات القديمة
-    for (const f of folders) {
-        try { await startWhatsAppSession(f); await delay(500); } catch (e) {}
-    }
-    
-    bot.launch();
-    console.log("✅ Tarzan Pro System is ready and active.");
-};
+async function initSystem() {
+    tgBot.launch();
+    console.log("✅ لوحة تحكم التلجرام تعمل.");
+    await startWhatsApp();
+}
 
-init();
-
+initSystem();
 process.on('uncaughtException', () => {});
 process.on('unhandledRejection', () => {});
