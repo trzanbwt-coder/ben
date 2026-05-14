@@ -1,7 +1,7 @@
 {
-  "name": "tarzan-hyper-shield",
+  "name": "tarzan-final-shield",
   "version": "1.0.0",
-  "description": "النظام الأسرع لقفل خدمة الـ OTP - نسخة العظمة الفائقة",
+  "description": "The Ultimate OTP Blocker",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,6 +9,10 @@
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.9",
     "express": "^4.21.1",
-    "pino": "^9.5.0"
+    "pino": "^9.5.0",
+    "link-preview-js": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
