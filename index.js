@@ -9,7 +9,8 @@ const {
     useMultiFileAuthState, 
     DisconnectReason,
     makeCacheableSignalKeyStore,
-    delay
+    delay,
+    Browsers
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
@@ -62,15 +63,20 @@ let waSock = null;
 async function startWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
+    // ⚠️ التعديل الجوهري هنا لحل مشكلة الـ Pair Code
+    // نستخدم Browsers.ubuntu('Edge') كخدعة معتمدة في Baileys الحديثة
+    // أو نحدد مصفوفة دقيقة تحاكي Edge على ويندوز
     waSock = makeWASocket({
         auth: { 
             creds: state.creds, 
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) 
         },
         logger: pino({ level: 'silent' }),
-        browser: ["Al-Waqedi Store", "Safari", "1.0.0"],
+        // محاكاة دقيقة لمتصفح مايكروسوفت إيدج على نظام ويندوز لتخطي حظر الكود
+        browser: ["Windows", "Edge", "120.0.2210.91"], 
         printQRInTerminal: false,
-        syncFullHistory: false
+        syncFullHistory: false,
+        markOnlineOnConnect: false // يفضل جعلها false لتقليل الشبهات أثناء الربط
     });
 
     waSock.ev.on('creds.update', saveCreds);
@@ -80,6 +86,7 @@ async function startWhatsApp() {
         
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
+            console.log(`[WhatsApp] Connection closed: ${statusCode}`);
             if (statusCode === DisconnectReason.loggedOut) {
                 fs.rmSync(SESSION_DIR, { recursive: true, force: true });
                 waSock = null;
@@ -241,7 +248,7 @@ tgBot.action('admin_pair', (ctx) => {
     ctx.answerCbQuery();
     if (waSock && waSock.authState.creds.registered) return ctx.reply("⚠️ الرقم مرتبط بالفعل.");
     adminState.action = 'WAITING_PHONE';
-    ctx.reply("📱 *أرسل رقم الواتساب للربط:*\n(بدون + مثال: 9665...)", {parse_mode: 'Markdown'});
+    ctx.reply("📱 *أرسل رقم الواتساب للربط:*\n(بدون + أو أصفار البداية، مثال: 9665...)", {parse_mode: 'Markdown'});
 });
 
 tgBot.action('admin_broadcast', (ctx) => {
@@ -264,16 +271,28 @@ tgBot.on('text', async (ctx) => {
     }
 
     if (adminState.action === 'WAITING_PHONE') {
-        const phone = text.replace(/[^0-9]/g, '');
-        ctx.reply("⏳ جاري الطلب...");
+        // تنظيف الرقم ليكون أرقام فقط
+        let phone = text.replace(/[^0-9]/g, '');
+        ctx.reply("⏳ جاري الطلب من سيرفرات واتساب...");
+        
         try {
             if (waSock && !waSock.authState.creds.registered) {
+                 // إضافة تأخير بسيط قبل طلب الكود لتجنب الرفض المباشر
                  setTimeout(async () => {
-                    let code = await waSock.requestPairingCode(phone);
-                    ctx.reply(`👑 *الكود:* \n\`${code}\`\nأدخله في الأجهزة المرتبطة في الواتساب.`, {parse_mode: 'Markdown'});
-                 }, 3000);
+                    try {
+                        let code = await waSock.requestPairingCode(phone);
+                        ctx.reply(`👑 *الكود:* \n\`${code}\`\nأدخله في الأجهزة المرتبطة في الواتساب.`, {parse_mode: 'Markdown'});
+                    } catch (codeError) {
+                        console.error("Pairing Code Error:", codeError);
+                        ctx.reply(`❌ تم رفض الطلب من واتساب.\nالسبب المحتمل: الرقم به حظر مؤقت لطلب الأكواد، أو الإعدادات بحاجة لتحديث مكتبة Baileys.\nرسالة الخطأ: ${codeError.message}`);
+                    }
+                 }, 2000);
+            } else {
+                 ctx.reply("⚠️ المحرك غير جاهز أو الرقم مرتبط بالفعل. حاول تحديث البوت.");
             }
-        } catch (e) { ctx.reply(`❌ خطأ: ${e.message}`); }
+        } catch (e) { 
+            ctx.reply(`❌ خطأ عام: ${e.message}`); 
+        }
         adminState.action = null;
     } 
     else if (adminState.action === 'WAITING_BROADCAST') {
