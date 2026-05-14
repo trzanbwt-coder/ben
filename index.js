@@ -1,6 +1,7 @@
 /**
  * 👑 𝑻𝑨𝑹𝒁𝑨𝑵 𝑩𝑬𝑵 𝑼𝑳𝑻𝑹𝑨 𝑽𝑰𝑷 - 𝑫𝒐𝒐𝒎𝒔𝒅𝒂𝒚 𝑬𝒅𝒊𝒕𝒊𝒐𝒏 👑
  * النسخة النووية النهائية - إبلاغ (10x) + متابعة جماعية + ترحيب آلي فخم
+ * تم إضافة خادم الويب (Express) لمنع منصة Render من إغلاق السيرفر
  */
 
 const { Telegraf, Markup } = require('telegraf');
@@ -16,10 +17,25 @@ const path = require('path');
 const pino = require('pino');
 
 // ==========================================
-// ⚙️ إعدادات المالك (قم بتعديلها فقط هنا)
+// 🌐 إضافة سيرفر وهمي لإرضاء منصة Render ومنع الانهيار (Status 1)
+// ==========================================
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('👑 TARZAN BEN ULTRA VIP IS RUNNING ON RENDER! 😈');
+});
+
+app.listen(PORT, () => {
+    console.log(`🌐 خادم الويب يعمل على المنفذ ${PORT} (تم تخطي فحص Render بنجاح)`);
+});
+
+// ==========================================
+// ⚙️ إعدادات المالك (كما أدخلتها أنت)
 // ==========================================
 const TG_TOKEN = '8831436238:AAF9M5hGwNbQwfoLKOr_XYS2Qij6WOA7Krw'; 
-const OWNER_ID = 8794826397; // ضع آيدي حسابك في التلجرام هنا (أرقام فقط)
+const OWNER_ID = 8794826397; // آيدي حسابك في التلجرام
 const DB_FILE = './tarzan_database.json';
 
 // ==========================================
