@@ -17,7 +17,7 @@ const path = require('path');
 const express = require('express');
 
 // ==========================================
-// ⚙️ إعدادات النظام (البيانات الخاصة بك)
+// ⚙️ إعدادات النظام الأساسية
 // ==========================================
 const TG_TOKEN = '8831436238:AAF9M5hGwNbQwfoLKOr_XYS2Qij6WOA7Krw'; 
 const ADMIN_ID = '8794826397'; 
@@ -27,7 +27,7 @@ const SESSION_DIR = path.join(__dirname, 'waqedi_session');
 const DB_FILE = path.join(__dirname, 'waqedi_db.json');
 
 // ==========================================
-// 🗄️ قاعدة البيانات المصغرة
+// 🗄️ قاعدة البيانات المحلية
 // ==========================================
 let db = {
     settings: { botActive: true },
@@ -37,12 +37,12 @@ let db = {
 
 if (fs.existsSync(DB_FILE)) {
     try { db = Object.assign(db, JSON.parse(fs.readFileSync(DB_FILE))); } 
-    catch (e) { console.error("⚠️ خطأ في قراءة قاعدة البيانات."); }
+    catch (e) { console.error("⚠️ خطأ في قراءة قاعدة البيانات، سيتم إنشاء واحدة جديدة."); }
 }
 const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 
 // ==========================================
-// 🌐 خادم الويب (مهم لاستضافة Render)
+// 🌐 خادم الويب (لإبقاء السيرفر نشطاً على Render)
 // ==========================================
 const app = express();
 app.get('/', (req, res) => res.send('👑 متجر الواقدي للخدمات الإلكترونية VIP يعمل بنجاح (EDGE MODE) 👑'));
@@ -68,11 +68,11 @@ async function startWhatsApp() {
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) 
         },
         logger: pino({ level: 'silent' }),
-        // 🛡️ سر العظمة هنا: انتحال شخصية Edge للويندوز لضمان استخراج الكود
+        // 🛡️ التعديل السري: محاكاة Edge على ويندوز لتخطي حظر الكود
         browser: ["Windows", "Edge", "110.0.1587.41"], 
         printQRInTerminal: false,
         syncFullHistory: false,
-        markOnlineOnConnect: false // تقليل الشبهات عند الاتصال الأول
+        markOnlineOnConnect: false
     });
 
     waSock.ev.on('creds.update', saveCreds);
@@ -87,7 +87,7 @@ async function startWhatsApp() {
                 waSock = null;
                 tgBot.telegram.sendMessage(ADMIN_ID, "⚠️ تم تسجيل الخروج من الواتساب! يرجى إعادة الربط عبر اللوحة.");
             } else {
-                setTimeout(startWhatsApp, 3000);
+                setTimeout(startWhatsApp, 4000); // تأخير لإعادة الاتصال بأمان
             }
         } else if (connection === 'open') {
             tgBot.telegram.sendMessage(ADMIN_ID, "✅ متجر الواقدي (واتساب) متصل كمتصفح Edge وجاهز للعمل!");
@@ -100,7 +100,7 @@ async function startWhatsApp() {
         if (!db.settings.botActive) return;
 
         const sender = msg.key.remoteJid;
-        if (sender.includes('@g.us')) return;
+        if (sender.includes('@g.us')) return; // تجاهل الجروبات
 
         db.stats.messagesReceived++;
         const pushName = msg.pushName || 'عميلنا العزيز';
@@ -125,6 +125,7 @@ async function startWhatsApp() {
 async function handleCustomerMessage(sender, text, pushName, originalMsg) {
     const userState = db.customers[sender].state;
 
+    // فتح القائمة الرئيسية
     if (['مرحبا', 'السلام عليكم', 'هلا', 'خدمات', 'القائمة'].includes(text.toLowerCase())) {
         db.customers[sender].state = 'IDLE';
         const menuSections = [
@@ -162,34 +163,36 @@ async function handleCustomerMessage(sender, text, pushName, originalMsg) {
         return;
     }
 
+    // تفاعلات الأقسام
     if (text === '🚀 زيادة متابعين تيك توك') {
-        await waSock.sendMessage(sender, { text: "📌 *تيك توك:*\n- 1000 متابع = 5$\nأرسل رابط حسابك:" });
+        await waSock.sendMessage(sender, { text: "📌 *تيك توك:*\n- 1000 متابع = 5$\n\nأرسل رابط حسابك الآن:" });
         db.customers[sender].state = 'WAITING_TIKTOK_LINK'; saveDB(); return;
     }
     
     if (text === '🔥 شحن شدات ببجي') {
-        await waSock.sendMessage(sender, { text: "📌 *ببجي:*\n- 325 شدة = 4$\nأرسل الـ ID الخاص بك:" });
+        await waSock.sendMessage(sender, { text: "📌 *ببجي:*\n- 325 شدة = 4$\n\nأرسل الـ ID الخاص بك:" });
         db.customers[sender].state = 'WAITING_PUBG_ID'; saveDB(); return;
     }
 
     if (text === '💳 طرق الدفع') {
-        await waSock.sendMessage(sender, { text: "💳 *طرق الدفع:*\n1. تحويل بنكي\n2. STC Pay\n3. باينانس USDT" }); return;
+        await waSock.sendMessage(sender, { text: "💳 *طرق الدفع:*\n1. تحويل بنكي (الراجحي، الأهلي)\n2. STC Pay\n3. باينانس USDT\n\n(للعودة أرسل 'قائمة')" }); return;
     }
 
     if (text === '👨‍💻 التحدث مع الإدارة') {
-        await waSock.sendMessage(sender, { text: "تم تحويلك للإدارة. ⏳\nيرجى كتابة رسالتك وسنرد قريباً." });
+        await waSock.sendMessage(sender, { text: "تم تحويلك للإدارة. ⏳\nيرجى كتابة رسالتك وسنرد عليك قريباً." });
         db.customers[sender].state = 'CHATTING_WITH_ADMIN'; saveDB();
         tgBot.telegram.sendMessage(ADMIN_ID, `🔔 *طلب محادثة جديد*\nالعميل: ${pushName}\nالرقم: ${sender.split('@')[0]}`); return;
     }
     
+    // التعامل مع مدخلات العملاء (روابط، IDs، شات)
     if (userState === 'WAITING_TIKTOK_LINK') {
-        await waSock.sendMessage(sender, { text: "✅ تم استلام الرابط.\nجاري التجهيز... (للعودة أرسل 'قائمة')" });
+        await waSock.sendMessage(sender, { text: "✅ تم استلام الرابط.\nجاري التجهيز... الرجاء الانتظار لتحويل الإيصال.\n(للعودة أرسل 'قائمة')" });
         db.customers[sender].state = 'IDLE'; db.stats.ordersPlaced++; saveDB();
         tgBot.telegram.sendMessage(ADMIN_ID, `🛒 *طلب تيك توك*\nالعميل: ${pushName}\nالرابط: ${text}`); return;
     }
 
     if (userState === 'WAITING_PUBG_ID') {
-        await waSock.sendMessage(sender, { text: `✅ تم استلام الـ ID: *${text}*\n(للعودة أرسل 'قائمة')` });
+        await waSock.sendMessage(sender, { text: `✅ تم استلام الـ ID: *${text}*\nجاري التجهيز...\n(للعودة أرسل 'قائمة')` });
         db.customers[sender].state = 'IDLE'; db.stats.ordersPlaced++; saveDB();
         tgBot.telegram.sendMessage(ADMIN_ID, `🎮 *طلب ببجي*\nالعميل: ${pushName}\nالـ ID: ${text}`); return;
     }
@@ -198,9 +201,10 @@ async function handleCustomerMessage(sender, text, pushName, originalMsg) {
         tgBot.telegram.sendMessage(ADMIN_ID, `💬 *رسالة من ${pushName}:*\n${text}\n\n---\nللرد:\n\`/رد ${sender.split('@')[0]} النص\``, {parse_mode: 'Markdown'}); return;
     }
 
+    // الرد الافتراضي
     if (userState === 'IDLE') {
         await waSock.sendMessage(sender, {
-            name: 'اختر إجراء سريع 👇',
+            name: 'عذراً، لم أفهم طلبك. اختر إجراء سريع 👇',
             values: ['القائمة', '👨‍💻 التحدث مع الإدارة'],
             selectableCount: 1
         });
@@ -211,6 +215,7 @@ async function handleCustomerMessage(sender, text, pushName, originalMsg) {
 // 🛠️ لوحة تحكم التلجرام للمدير
 // ==========================================
 tgBot.use((ctx, next) => {
+    // حماية اللوحة لكي لا يستخدمها أحد غيرك
     if (ctx.from && ctx.from.id.toString() !== ADMIN_ID) return ctx.reply("⛔ اللوحة للإدارة فقط.");
     return next();
 });
@@ -218,14 +223,14 @@ tgBot.use((ctx, next) => {
 tgBot.start((ctx) => { adminState.action = null; sendAdminMenu(ctx); });
 
 function sendAdminMenu(ctx) {
-    const statusText = db.settings.botActive ? '🟢 يعمل' : '🔴 متوقف';
-    const msg = `👑 *لوحة متجر الواقدي VIP* 👑\n\n📊 *الإحصائيات:*\n- العملاء: ${Object.keys(db.customers).length}\n- الطلبات: ${db.stats.ordersPlaced}\n\n⚙️ *الحالة:* ${statusText}\n💻 *متصفح الربط:* Edge 110`;
+    const statusText = db.settings.botActive ? '🟢 البوت يعمل' : '🔴 البوت متوقف';
+    const msg = `👑 *لوحة متجر الواقدي VIP* 👑\n\n📊 *الإحصائيات:*\n- العملاء المسجلين: ${Object.keys(db.customers).length}\n- الطلبات الجديدة: ${db.stats.ordersPlaced}\n\n⚙️ *الحالة:* ${statusText}\n💻 *متصفح الربط:* Edge 110`;
 
     const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🔗 ربط الرقم (كود)', 'admin_pair')],
-        [Markup.button.callback(db.settings.botActive ? '⏸️ إيقاف' : '▶️ تشغيل', 'admin_toggle_bot')],
-        [Markup.button.callback('📢 إذاعة رسالة', 'admin_broadcast')],
-        [Markup.button.callback('🔄 تحديث', 'admin_refresh')]
+        [Markup.button.callback('🔗 ربط الرقم (Pair Code)', 'admin_pair')],
+        [Markup.button.callback(db.settings.botActive ? '⏸️ إيقاف المتجر' : '▶️ تشغيل المتجر', 'admin_toggle_bot')],
+        [Markup.button.callback('📢 رسالة للكل', 'admin_broadcast')],
+        [Markup.button.callback('🔄 تحديث الإحصائيات', 'admin_refresh')]
     ]);
 
     if (ctx.updateType === 'callback_query') ctx.editMessageText(msg, { parse_mode: 'Markdown', ...keyboard }).catch(()=>{});
@@ -241,77 +246,95 @@ tgBot.action('admin_toggle_bot', (ctx) => {
 
 tgBot.action('admin_pair', (ctx) => {
     ctx.answerCbQuery();
-    if (waSock && waSock.authState.creds.registered) return ctx.reply("⚠️ الرقم مرتبط بالفعل.");
+    if (waSock && waSock.authState && waSock.authState.creds && waSock.authState.creds.registered) {
+        return ctx.reply("⚠️ هناك رقم مرتبط بالفعل. سجل الخروج من تطبيق الواتساب أولاً لربط رقم جديد.");
+    }
     adminState.action = 'WAITING_PHONE';
-    ctx.reply("📱 *أرسل رقم الواتساب للربط:*\n(بدون + أو أصفار البداية، مثال: 9665...)", {parse_mode: 'Markdown'});
+    ctx.reply("📱 *أرسل رقم الواتساب للربط:*\n(أرسل الرقم بدون علامة + أو أصفار البداية، مثال: 966500000000)", {parse_mode: 'Markdown'});
 });
 
 tgBot.action('admin_broadcast', (ctx) => {
     ctx.answerCbQuery(); adminState.action = 'WAITING_BROADCAST';
-    ctx.reply("📢 *إرسال للكل:*\nاكتب الرسالة (أو أرسل 'الغاء')", {parse_mode: 'Markdown'});
+    ctx.reply("📢 *إرسال رسالة للكل:*\nاكتب الرسالة (أو أرسل كلمة 'الغاء' للتراجع)", {parse_mode: 'Markdown'});
 });
 
 tgBot.on('text', async (ctx) => {
     const text = ctx.message.text.trim();
 
+    // 📩 أمر الرد المباشر من التلجرام إلى الواتساب
     if (text.startsWith('/رد ')) {
         if (!waSock) return ctx.reply("❌ الواتساب غير متصل.");
         const parts = text.split(' ');
-        if (parts.length < 3) return ctx.reply("⚠️ استخدم: `/رد الرقم النص`", {parse_mode:'Markdown'});
+        if (parts.length < 3) return ctx.reply("⚠️ الاستخدام الصحيح: `/رد رقم_العميل رسالتك`", {parse_mode:'Markdown'});
+        
         try {
-            await waSock.sendMessage(`${parts[1]}@s.whatsapp.net`, { text: `👨‍💻 *رد الإدارة:*\n${parts.slice(2).join(' ')}` });
-            ctx.reply("✅ تم الإرسال.");
-        } catch (e) { ctx.reply("❌ فشل الإرسال."); }
+            await waSock.sendMessage(`${parts[1]}@s.whatsapp.net`, { text: `👨‍💻 *رد الإدارة:*\n\n${parts.slice(2).join(' ')}` });
+            ctx.reply("✅ تم إرسال الرد بنجاح.");
+        } catch (e) { ctx.reply("❌ فشل الإرسال، تأكد من الرقم."); }
         return;
     }
 
+    // 📱 استقبال رقم الهاتف لطلب الكود
     if (adminState.action === 'WAITING_PHONE') {
         let phone = text.replace(/[^0-9]/g, '');
-        ctx.reply("⏳ جاري الطلب بهوية Edge لضمان القبول...");
+        if (!phone) return ctx.reply("❌ يرجى إرسال أرقام فقط.");
+        
+        ctx.reply("⏳ جاري الطلب من سيرفرات واتساب بهوية Edge لضمان القبول...");
         
         try {
-            if (waSock && !waSock.authState.creds.registered) {
+            if (waSock) {
                  setTimeout(async () => {
                     try {
                         let code = await waSock.requestPairingCode(phone);
-                        ctx.reply(`👑 *كود الربط (Edge):* \n\`${code}\`\n\nأدخله الآن في الأجهزة المرتبطة في تطبيق الواتساب الخاص بك.`, {parse_mode: 'Markdown'});
+                        ctx.reply(`👑 *كود الربط الخاص بك هو:* \n\n\`${code}\`\n\nأدخله الآن في تطبيق الواتساب (الأجهزة المرتبطة > ربط برقم الهاتف).`, {parse_mode: 'Markdown'});
                     } catch (codeError) {
                         console.error("Pairing Code Error:", codeError);
-                        ctx.reply(`❌ تم رفض الطلب.\nالسبب: ${codeError.message}\nجرب رقماً آخر أو انتظر قليلاً.`);
+                        ctx.reply(`❌ تم رفض الطلب.\nالسبب: ${codeError.message}\nيرجى التأكد من الرقم، أو جرب رقماً آخر.`);
                     }
-                 }, 3000); // الانتظار قليلاً للاتصال بالخوادم
+                 }, 2500); 
             } else {
-                 ctx.reply("⚠️ المحرك غير جاهز أو الرقم مرتبط بالفعل.");
+                 ctx.reply("⚠️ المحرك غير جاهز. انتظر ثواني وحاول مجدداً.");
             }
         } catch (e) { 
             ctx.reply(`❌ خطأ عام: ${e.message}`); 
         }
         adminState.action = null;
     } 
+    // 📢 استقبال رسالة الإذاعة (Broadcast)
     else if (adminState.action === 'WAITING_BROADCAST') {
-        if (text === 'الغاء') { adminState.action = null; return ctx.reply("✅ تم الإلغاء."); }
+        if (text === 'الغاء') { adminState.action = null; return ctx.reply("✅ تم إلغاء الإرسال."); }
         if (!waSock) return ctx.reply("❌ الواتساب غير متصل.");
         
         const customers = Object.keys(db.customers);
-        ctx.reply(`⏳ جاري الإرسال لـ ${customers.length} عميل...`);
+        if (customers.length === 0) return ctx.reply("⚠️ لا يوجد عملاء في قاعدة البيانات.");
+        
+        ctx.reply(`⏳ جاري الإرسال لـ ${customers.length} عميل... الرجاء الانتظار.`);
         let successCount = 0;
+        
         for (const jid of customers) {
-            try { await waSock.sendMessage(jid, { text: `📢 *إعلان:*\n${text}` }); successCount++; await delay(1000); } catch (e) {}
+            try { 
+                await waSock.sendMessage(jid, { text: `📢 *إعلان من متجر الواقدي:*\n\n${text}` }); 
+                successCount++; 
+                await delay(1200); // تأخير مهم لتجنب حظر الواتساب
+            } catch (e) {}
         }
-        ctx.reply(`✅ *تم الإرسال* لـ ${successCount} عميل.`, {parse_mode: 'Markdown'});
+        ctx.reply(`✅ *اكتمل الإرسال!*\nتم الوصول لـ ${successCount} عميل بنجاح.`, {parse_mode: 'Markdown'});
         adminState.action = null;
     }
 });
 
+// ==========================================
+// 🚀 بدء التشغيل
+// ==========================================
 async function initSystem() {
-    tgBot.launch();
+    console.log("🔥 Starting Waqedi Store VIP System...");
+    tgBot.launch().catch(err => console.error("Telegram Launch Error:", err));
     console.log("✅ لوحة تحكم التلجرام تعمل.");
     await startWhatsApp();
 }
 
 initSystem();
-process.on('uncaughtException', () => {});
-process.on('unhandledRejection', () => {});
-```eof
 
-هذا هو متجر الواقدي VIP بالكامل، جاهز للعمل مع لوحة التلجرام والردود الآلية، مزوداً الآن بـ **محرك Edge 110.0.1587.41** كما طلبت لتخطي مشكلة الأكواد! شغل واستمتع بالنجاح. 😈🔥
+// معالجة الأخطاء الطارئة لضمان عدم توقف السيرفر
+process.on('uncaughtException', (err) => console.log('Uncaught Error:', err.message));
+process.on('unhandledRejection', (err) => console.log('Unhandled Rejection:', err.message));
