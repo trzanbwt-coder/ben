@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARZAN VIP - Auto Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0a0a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass-panel { background: rgba(30, 30, 30, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.2); }
+        .gold-text { background: linear-gradient(to right, #ffd700, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .log-box { font-family: monospace; }
+    </style>
+</head>
+<body class="min-h-screen p-6 relative overflow-hidden">
+    <!-- خلفية مضيئة -->
+    <div class="absolute top-[-20%] right-[-10%] w-96 h-96 bg-yellow-600/20 blur-[120px] rounded-full z-0"></div>
+
+    <div class="max-w-3xl mx-auto relative z-10">
+        <!-- Header -->
+        <header class="text-center mb-10 mt-5">
+            <h1 class="text-4xl font-black gold-text mb-2 tracking-wider"><i class="fa-solid fa-crown mr-2"></i> TARZAN VIP ENGINE</h1>
+            <p class="text-gray-400 text-sm tracking-widest uppercase">Tiktok Automation System</p>
+        </header>
+
+        <!-- لوحة التحكم -->
+        <div class="glass-panel rounded-3xl p-8 shadow-2xl shadow-yellow-900/20 mb-8">
+            <div class="mb-6">
+                <label class="block text-yellow-500 font-bold mb-2 text-sm">رابط الفيديو (TikTok URL)</label>
+                <div class="relative">
+                    <i class="fa-solid fa-link absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                    <input type="text" id="url" placeholder="https://vm.tiktok.com/..." class="w-full bg-black/50 border border-gray-700 rounded-xl py-4 pr-12 pl-4 text-white focus:border-yellow-500 focus:outline-none transition-all">
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <label class="block text-yellow-500 font-bold mb-2 text-sm">نوع العملية (Mode)</label>
+                <select id="mode" class="w-full bg-black/50 border border-gray-700 rounded-xl py-4 px-4 text-white focus:border-yellow-500 focus:outline-none appearance-none">
+                    <option value="views">👁️ زيادة المشاهدات (Views)</option>
+                    <option value="hearts">❤️ زيادة الإعجابات (Hearts)</option>
+                    <option value="shares">🔄 زيادة المشاركات (Shares)</option>
+                </select>
+            </div>
+
+            <div class="flex space-x-4 space-x-reverse">
+                <button onclick="startEngine()" id="startBtn" class="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-black py-4 rounded-xl hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] transform hover:-translate-y-1 transition-all">
+                    <i class="fa-solid fa-rocket ml-2"></i> إطلاق المحرك
+                </button>
+                <button onclick="stopEngine()" id="stopBtn" class="flex-1 bg-red-900/80 text-white border border-red-500/50 font-black py-4 rounded-xl hover:bg-red-800 transition-all hidden">
+                    <i class="fa-solid fa-stop ml-2"></i> إيقاف قسري
+                </button>
+            </div>
+        </div>
+
+        <!-- شاشة المراقبة المباشرة -->
+        <div class="glass-panel rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-4">
+                <h3 class="font-bold text-gray-300"><i class="fa-solid fa-terminal text-yellow-500 ml-2"></i> محطة المراقبة الحية</h3>
+                <span id="statusBadge" class="px-3 py-1 bg-gray-800 text-gray-400 rounded-full text-xs font-bold border border-gray-700">متوقف 🔴</span>
+            </div>
+            
+            <div id="logs" class="log-box h-64 overflow-y-auto text-sm text-green-400 space-y-2 flex flex-col-reverse p-2 bg-black/40 rounded-xl border border-gray-800">
+                <!-- السجلات تظهر هنا -->
+                <div class="text-gray-500 text-center mt-10">في انتظار إطلاق المحرك...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+        const statusBadge = document.getElementById('statusBadge');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        // تحديث السجلات تلقائياً
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                statusBadge.innerText = data.status;
+                if(data.is_running) {
+                    statusBadge.className = "px-3 py-1 bg-green-900/50 text-green-400 rounded-full text-xs font-bold border border-green-500/50";
+                    startBtn.classList.add('hidden');
+                    stopBtn.classList.remove('hidden');
+                } else {
+                    statusBadge.className = "px-3 py-1 bg-gray-800 text-gray-400 rounded-full text-xs font-bold border border-gray-700";
+                    startBtn.classList.remove('hidden');
+                    stopBtn.classList.add('hidden');
+                }
+
+                if(data.logs.length > 0) {
+                    logsDiv.innerHTML = data.logs.map(log => `<div class="border-b border-gray-800/50 pb-1">> ${log}</div>`).join('');
+                }
+            } catch (e) { console.log(e); }
+        }, 2000);
+
+        async function startEngine() {
+            const url = document.getElementById('url').value;
+            const mode = document.getElementById('mode').value;
+            
+            if(!url) return alert('الرجاء إدخال رابط الفيديو');
+            
+            await fetch('/api/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, mode })
+            });
+        }
+
+        async function stopEngine() {
+            await fetch('/api/stop', { method: 'POST' });
+        }
+    </script>
+</body>
+</html>
